@@ -427,13 +427,24 @@ function handleDeleteAnnouncement(body) {
 // in Drive if you want the storage back.
 // ---------------------------------------------------------------------------
 
+// Rows created before the URL format fix still have the old
+// drive.google.com/uc?export=view links, which Google frequently blocks
+// when hotlinked cross-origin. Normalize on read so old rows display
+// correctly without a data migration; new rows already come out of
+// handleAddGalleryImage in the correct format and pass through unchanged.
+function normalizeDriveImageUrl(url) {
+  var match = /[?&]id=([^&]+)/.exec(url || '');
+  if (!match) return url;
+  return 'https://lh3.googleusercontent.com/d/' + match[1] + '=w1600';
+}
+
 function handleListGallery() {
   var rows = readRows('Gallery').map(function (row) {
     return {
       id: row.id,
       title: row.title,
       description: row.description,
-      image: row.image,
+      image: normalizeDriveImageUrl(row.image),
       category: row.category,
       date: dateOnly(row.date),
       createdBy: row.createdBy,
@@ -449,7 +460,11 @@ function handleAddGalleryImage(body) {
   var blob = Utilities.newBlob(bytes, body.mimeType || 'image/jpeg', body.filename || 'photo.jpg');
   var file = folder.createFile(blob);
   file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  var imageUrl = 'https://drive.google.com/uc?export=view&id=' + file.getId();
+  // drive.google.com/uc?export=view is unreliable for hotlinking as an
+  // <img src> — Google serves an interstitial/blocked page for it when
+  // requested cross-origin. lh3.googleusercontent.com/d/<id> is the format
+  // Drive/Photos use for their own thumbnails and embeds reliably.
+  var imageUrl = 'https://lh3.googleusercontent.com/d/' + file.getId() + '=w1600';
 
   var id = body.id || generateId();
   var image = {
