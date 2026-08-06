@@ -1,17 +1,18 @@
 import type { MetadataRoute } from 'next'
-import { projects } from '@/content/projects'
-import { events } from '@/content/events'
+import { getAllProjects } from '@/lib/merge-projects'
+import { getAllEvents } from '@/lib/merge-events'
 
-// Placeholder — swap for the real production domain once deployed.
-const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://applecentre.rit.edu'
+const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://apple-centre-website.vercel.app'
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticRoutes = ['', '/programs', '/projects', '/events', '/faculty', '/gallery', '/apply'].map(
     (route) => ({
       url: `${baseUrl}${route}`,
       lastModified: new Date(),
     })
   )
+
+  const [projects, events] = await Promise.all([getAllProjects(), getAllEvents()])
 
   const projectRoutes = projects.map((project) => ({
     url: `${baseUrl}/projects/${project.id}`,
