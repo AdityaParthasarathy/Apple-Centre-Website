@@ -23,24 +23,21 @@ type AppsScriptResponse = AppsScriptSuccess | AppsScriptFailure
  * for this specific cross-domain redirect — it was following it as a
  * malformed POST and getting a 404 back. Following it manually here instead.
  */
-export async function callAppsScript<T extends Record<string, unknown> = Record<string, unknown>>(
+async function callAppsScriptOnce<T extends Record<string, unknown>>(
+  url: string,
+  secret: string,
   action: string,
-  payload: Record<string, unknown> = {}
+  payload: Record<string, unknown>
 ): Promise<T> {
-  const { GOOGLE_APPS_SCRIPT_URL, GOOGLE_APPS_SCRIPT_SECRET } = process.env
-  if (!GOOGLE_APPS_SCRIPT_URL || !GOOGLE_APPS_SCRIPT_SECRET) {
-    throw new Error('Apps Script is not configured (missing GOOGLE_APPS_SCRIPT_* env vars).')
-  }
-
   // Apps Script Web Apps are occasionally slow (observed 10-40s+ even on
   // success) — without a cap, a sluggish response can stall a Server
   // Component past Next's static-generation budget and fail the whole
   // build. 15s is generous for a Sheets read/write but still leaves room
   // for callers' try/catch to fall back to static content.
-  const initial = await fetch(GOOGLE_APPS_SCRIPT_URL, {
+  const initial = await fetch(url, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, secret: GOOGLE_APPS_SCRIPT_SECRET, ...payload }),
+    body: JSON.stringify({ action, secret, ...payload }),
     redirect: 'manual',
     signal: AbortSignal.timeout(15000),
   })
@@ -58,4 +55,25 @@ export async function callAppsScript<T extends Record<string, unknown> = Record<
   }
 
   return body as unknown as T
+}
+
+export async function callAppsScript<T extends Record<string, unknown> = Record<string, unknown>>(
+  action: string,
+  payload: Record<string, unknown> = {}
+): Promise<T> {
+  const { GOOGLE_APPS_SCRIPT_URL, GOOGLE_APPS_SCRIPT_SECRET } = process.env
+  if (!GOOGLE_APPS_SCRIPT_URL || !GOOGLE_APPS_SCRIPT_SECRET) {
+    throw new Error('Apps Script is not configured (missing GOOGLE_APPS_SCRIPT_* env vars).')
+  }
+
+  try {
+    return await callAppsScriptOnce<T>(GOOGLE_APPS_SCRIPT_URL, GOOGLE_APPS_SCRIPT_SECRET, action, payload)
+  } catch (err) {
+    // Only read-only `list*` actions retry — they're safe to repeat. A
+    // write (add/update/delete) that appears to fail client-side may have
+    // already committed server-side (this bit us once already, producing a
+    // duplicate gallery row), so retrying those would risk double-writes.
+    if (!action.startsWith('list')) throw err
+    return await callAppsScriptOnce<T>(GOOGLE_APPS_SCRIPT_URL, GOOGLE_APPS_SCRIPT_SECRET, action, payload)
+  }
 }
