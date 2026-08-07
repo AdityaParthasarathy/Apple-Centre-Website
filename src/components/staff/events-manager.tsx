@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { MotionButton } from '@/components/patterns/motion-link'
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/components/ui/select'
+import { ImageUploadField } from '@/components/staff/image-upload-field'
 import { inputClass } from '@/lib/utils'
 import type { SheetEvent } from '@/lib/sheet-types'
 
@@ -191,16 +192,7 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
               <label className="mb-1.5 block text-sm font-medium text-foreground">Location</label>
               <input required value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={inputClass} />
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Image URL</label>
-              <input
-                required
-                placeholder="https://…"
-                value={form.image}
-                onChange={(e) => setForm({ ...form, image: e.target.value })}
-                className={inputClass}
-              />
-            </div>
+            <ImageUploadField required value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
           </div>
 
           <div className="flex flex-wrap gap-6">

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { MotionButton } from '@/components/patterns/motion-link'
+import { ImageUploadField } from '@/components/staff/image-upload-field'
 import { inputClass } from '@/lib/utils'
 import type { SheetTeamMember } from '@/lib/sheet-types'
 
@@ -115,10 +116,7 @@ export function TeamManager({ initialMembers }: { initialMembers: SheetTeamMembe
             <textarea required rows={3} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} className={inputClass} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Photo URL (optional)</label>
-              <input placeholder="https://…" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} className={inputClass} />
-            </div>
+            <ImageUploadField label="Photo (optional)" value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">Contact (optional)</label>
               <input

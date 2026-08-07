@@ -5,6 +5,7 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { MotionButton } from '@/components/patterns/motion-link'
+import { ImageUploadField } from '@/components/staff/image-upload-field'
 import { inputClass } from '@/lib/utils'
 import type { SheetProject } from '@/lib/sheet-types'
 
@@ -143,10 +144,7 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Image URL (optional)</label>
-              <input placeholder="https://…" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} className={inputClass} />
-            </div>
+            <ImageUploadField label="Photo (optional)" value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">Link (optional)</label>
               <input placeholder="https://…" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} className={inputClass} />

@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { MotionButton } from '@/components/patterns/motion-link'
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/components/ui/select'
+import { ImageUploadField } from '@/components/staff/image-upload-field'
 import { inputClass } from '@/lib/utils'
 import type { SheetProgram } from '@/lib/sheet-types'
 
@@ -155,10 +156,7 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
               className={inputClass}
             />
           </div>
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Image URL</label>
-            <input required placeholder="https://…" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} className={inputClass} />
-          </div>
+          <ImageUploadField required value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
 
           {error && (
             <p className="text-sm text-destructive" role="alert">

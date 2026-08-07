@@ -50,6 +50,8 @@ function doPost(e) {
         return handleUpdateAnnouncement(body);
       case 'deleteAnnouncement':
         return handleDeleteAnnouncement(body);
+      case 'uploadImage':
+        return handleUploadImage(body);
       case 'listGallery':
         return handleListGallery();
       case 'addGalleryImage':
@@ -454,7 +456,14 @@ function handleListGallery() {
   return jsonResponse({ success: true, items: rows });
 }
 
-function handleAddGalleryImage(body) {
+// Shared by handleUploadImage (the generic "pick a photo" field used on
+// Events/Projects/Programs/Facilities/Team) and handleAddGalleryImage (which
+// creates its Gallery row in the same step). Both save into the same Drive
+// folder — there's only one "photos uploaded through the portal" folder
+// rather than one per content type, to avoid making the user create and
+// wire up five more folder IDs for what is, from Drive's point of view, the
+// same kind of file.
+function uploadImageToDrive(body) {
   var folder = DriveApp.getFolderById(GALLERY_FOLDER_ID);
   var bytes = Utilities.base64Decode(body.base64);
   var blob = Utilities.newBlob(bytes, body.mimeType || 'image/jpeg', body.filename || 'photo.jpg');
@@ -464,8 +473,16 @@ function handleAddGalleryImage(body) {
   // <img src> — Google serves an interstitial/blocked page for it when
   // requested cross-origin. lh3.googleusercontent.com/d/<id> is the format
   // Drive/Photos use for their own thumbnails and embeds reliably.
-  var imageUrl = 'https://lh3.googleusercontent.com/d/' + file.getId() + '=w1600';
+  return 'https://lh3.googleusercontent.com/d/' + file.getId() + '=w1600';
+}
 
+function handleUploadImage(body) {
+  var imageUrl = uploadImageToDrive(body);
+  return jsonResponse({ success: true, url: imageUrl });
+}
+
+function handleAddGalleryImage(body) {
+  var imageUrl = uploadImageToDrive(body);
   var id = body.id || generateId();
   var image = {
     id: id,

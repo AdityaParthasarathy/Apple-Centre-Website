@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Pencil, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { MotionButton } from '@/components/patterns/motion-link'
+import { ImageUploadField } from '@/components/staff/image-upload-field'
 import { inputClass } from '@/lib/utils'
 import type { SheetFacility } from '@/lib/sheet-types'
 
@@ -102,8 +103,7 @@ export function FacilitiesManager({ initialFacilities }: { initialFacilities: Sh
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Image URL</label>
-            <input required placeholder="https://…" value={form.image} onChange={(e) => setForm({ ...form, image: e.target.value })} className={inputClass} />
+            <ImageUploadField required value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
           </div>
 
           {error && (
