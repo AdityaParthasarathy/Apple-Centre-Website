@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { motion, AnimatePresence } from 'motion/react'
 import {
   format,
@@ -17,6 +18,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 
 export interface CalendarEvent {
+  id: string
   date: Date
   title: string
   description?: string
@@ -24,13 +26,12 @@ export interface CalendarEvent {
 
 interface EventsCalendarProps {
   events: CalendarEvent[]
-  onEventClick?: (event: CalendarEvent) => void
   className?: string
 }
 
 const WEEKDAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 
-export function EventsCalendar({ events, onEventClick, className = '' }: EventsCalendarProps) {
+export function EventsCalendar({ events, className = '' }: EventsCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date())
 
@@ -152,18 +153,17 @@ export function EventsCalendar({ events, onEventClick, className = '' }: EventsC
               <p className="text-xs font-medium text-muted-foreground">
                 {format(selectedDate, 'EEEE, MMMM d')}
               </p>
-              {selectedDayEvents.map((event, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => onEventClick?.(event)}
+              {selectedDayEvents.map((event) => (
+                <Link
+                  key={event.id}
+                  href={`/events/${event.id}`}
                   className="block w-full rounded-lg border border-accent/30 bg-accent/5 p-3 text-left transition-colors hover:bg-accent/10"
                 >
                   <p className="text-sm font-semibold text-accent">{event.title}</p>
                   {event.description && (
                     <p className="mt-0.5 text-xs text-muted-foreground">{event.description}</p>
                   )}
-                </button>
+                </Link>
               ))}
             </motion.div>
           ) : (
