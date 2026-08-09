@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import Image from 'next/image'
+import { ExternalLink, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { MotionButton } from '@/components/patterns/motion-link'
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/components/ui/select'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
-import type { ApplicationStatus, SheetApplication } from '@/lib/sheet-types'
+import { applicationProjects, type ApplicationStatus, type SheetApplication } from '@/lib/sheet-types'
 
 const STATUSES: ApplicationStatus[] = ['Pending', 'Reviewed', 'Accepted', 'Rejected']
 
@@ -24,13 +25,14 @@ export function ApplicationsManager({ initialApplications }: { initialApplicatio
 
   const updateStatus = async (id: string, status: ApplicationStatus) => {
     const previous = applications
-    setApplications((prev) => prev.map((app) => (app.id === id ? { ...app, status } : app)))
+    const app = applications.find((a) => a.id === id)
+    setApplications((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)))
     setError(null)
     try {
       const res = await fetch(`/api/staff/applications/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, name: app?.name, email: app?.email }),
       })
       if (!res.ok) throw new Error()
     } catch {
@@ -69,43 +71,89 @@ export function ApplicationsManager({ initialApplications }: { initialApplicatio
           {error}
         </p>
       )}
-      {applications.map((app) => (
-        <Card key={app.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <p className="font-semibold text-foreground">{app.name}</p>
-              <Badge variant={STATUS_BADGE[app.status]} className="text-xs">
-                {app.status}
-              </Badge>
-            </div>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              {app.email} · {app.phone || 'No phone'} · {app.year}
-            </p>
-            {app.skills && <p className="mt-1 text-xs text-muted-foreground">Skills: {app.skills}</p>}
-            {app.projects && (
-              <p className="mt-1 text-xs text-muted-foreground">Projects: {app.projects}</p>
-            )}
-          </div>
+      {applications.map((app) => {
+        const projects = applicationProjects(app)
+        return (
+          <Card key={app.id} className="flex flex-col gap-4 p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-foreground">{app.name}</p>
+                  <Badge variant={STATUS_BADGE[app.status]} className="text-xs">
+                    {app.status}
+                  </Badge>
+                </div>
+                <p className="mt-0.5 text-sm text-muted-foreground">
+                  {app.email} · {app.phone || 'No phone'} · {app.year}
+                </p>
+                {app.skills && <p className="mt-1 text-xs text-muted-foreground">Skills: {app.skills}</p>}
+              </div>
 
-          <div className="flex shrink-0 items-center gap-2">
-            <Select value={app.status} onValueChange={(value) => updateStatus(app.id, value as ApplicationStatus)}>
-              <SelectTrigger className="w-40 shrink-0">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectPopup>
-                {STATUSES.map((status) => (
-                  <SelectItem key={status} value={status}>
-                    {status}
-                  </SelectItem>
+              <div className="flex shrink-0 items-center gap-2">
+                <Select value={app.status} onValueChange={(value) => updateStatus(app.id, value as ApplicationStatus)}>
+                  <SelectTrigger className="w-40 shrink-0">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectPopup>
+                    {STATUSES.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status}
+                      </SelectItem>
+                    ))}
+                  </SelectPopup>
+                </Select>
+                <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => setPendingDelete(app)} aria-label="Delete application">
+                  <Trash2 className="h-3.5 w-3.5" />
+                </MotionButton>
+              </div>
+            </div>
+
+            {projects.length > 0 && (
+              <div className="grid gap-3 border-t border-border pt-3 sm:grid-cols-2 lg:grid-cols-3">
+                {projects.map((project, idx) => (
+                  <div key={idx} className="flex gap-3 rounded-lg border border-border p-3">
+                    {project.screenshot && (
+                      <a
+                        href={project.screenshot}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md border border-border"
+                      >
+                        <Image src={project.screenshot} alt="" fill className="object-cover" unoptimized />
+                      </a>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-3 text-xs text-foreground">{project.description}</p>
+                      <div className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1">
+                        {project.sourceLink && (
+                          <a
+                            href={project.sourceLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-0.5 text-xs text-accent hover:underline"
+                          >
+                            Source <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                        {project.liveLink && (
+                          <a
+                            href={project.liveLink}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-0.5 text-xs text-accent hover:underline"
+                          >
+                            Live <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 ))}
-              </SelectPopup>
-            </Select>
-            <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => setPendingDelete(app)} aria-label="Delete application">
-              <Trash2 className="h-3.5 w-3.5" />
-            </MotionButton>
-          </div>
-        </Card>
-      ))}
+              </div>
+            )}
+          </Card>
+        )
+      })}
 
       <ConfirmDialog
         open={pendingDelete !== null}
