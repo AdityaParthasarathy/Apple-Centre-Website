@@ -1,16 +1,34 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Manrope, IBM_Plex_Mono } from "next/font/google";
 import { MotionConfigProvider } from "@/components/patterns/motion-config-provider";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Two-face system, not the Next.js starter default (Geist): a confident
+// display face for headings that holds up at the large sizes this site
+// uses (hero, h1-h2), paired with a warmer, highly-legible grotesk for
+// body copy and UI — plus a mono face reserved for the small uppercase
+// section labels, giving them a deliberate "engineered" accent rather
+// than just being the body font in caps.
+// Named *-src, not the plain --font-heading/--font-sans/--font-mono the
+// Tailwind theme tokens use in globals.css — @theme inline maps token to
+// source there, and giving both ends the same custom property name would
+// make that mapping a circular self-reference (resolves to nothing).
+const headingFont = Plus_Jakarta_Sans({
+  variable: "--font-heading-src",
   subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const bodyFont = Manrope({
+  variable: "--font-body-src",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+});
+
+const monoFont = IBM_Plex_Mono({
+  variable: "--font-mono-src",
+  subsets: ["latin"],
+  weight: ["500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -37,7 +55,7 @@ export default function RootLayout({
     <html
       lang="en"
       data-scroll-behavior="smooth"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${headingFont.variable} ${bodyFont.variable} ${monoFont.variable} h-full antialiased`}
     >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />

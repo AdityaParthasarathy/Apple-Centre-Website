@@ -19,7 +19,7 @@ export function LabsFacilitiesSectionClient({ facilities }: { facilities: Facili
           viewport={{ once: true }}
           className="mb-16 max-w-2xl"
         >
-          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-accent">
+          <p className="mb-3 font-mono text-xs font-medium uppercase tracking-[0.15em] text-accent">
             Facilities
           </p>
           <SectionHeading size="xl">Labs &amp; facilities</SectionHeading>

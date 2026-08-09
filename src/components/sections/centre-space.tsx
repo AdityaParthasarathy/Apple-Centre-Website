@@ -21,7 +21,7 @@ export function CentreSpaceSection() {
           viewport={{ once: true }}
           className="mb-16 max-w-2xl"
         >
-          <p className="mb-3 text-sm font-semibold uppercase tracking-wide text-accent">
+          <p className="mb-3 font-mono text-xs font-medium uppercase tracking-[0.15em] text-accent">
             The space
           </p>
           <SectionHeading size="xl">Inside the Centre</SectionHeading>

@@ -9,6 +9,16 @@ import { FadeIn } from '@/components/patterns/fade-in'
 import { MotionLink } from '@/components/patterns/motion-link'
 import { getAllPrograms } from '@/lib/merge-programs'
 import { isExternalImage } from '@/lib/utils'
+import type { Program } from '@/content/programs'
+
+// Level is a real signal a prospective student scans for first — coding it
+// by badge weight (outline -> secondary -> accent) means it reads at a
+// glance instead of requiring the label text to be parsed.
+const LEVEL_BADGE: Record<Program['level'], 'outline' | 'secondary' | 'accent'> = {
+  beginner: 'outline',
+  intermediate: 'secondary',
+  advanced: 'accent',
+}
 
 export const metadata: Metadata = {
   title: 'Programs | Centre for Apple Technologies',
@@ -58,7 +68,7 @@ export default async function ProgramsPage() {
                 <div className="flex flex-1 flex-col gap-4 p-6">
                   <div className="flex items-start justify-between gap-2">
                     <h2 className="text-xl font-semibold text-foreground">{program.title}</h2>
-                    <Badge variant="secondary" className="shrink-0 capitalize">
+                    <Badge variant={LEVEL_BADGE[program.level]} className="shrink-0 capitalize">
                       {program.level}
                     </Badge>
                   </div>
