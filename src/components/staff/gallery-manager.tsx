@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card'
 import { MotionButton } from '@/components/patterns/motion-link'
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/components/ui/select'
 import { compressImage } from '@/lib/image-compress'
+import { ConfirmDialog } from '@/components/staff/confirm-dialog'
 import { inputClass } from '@/lib/utils'
 import type { SheetGalleryImage } from '@/lib/sheet-types'
 
@@ -78,8 +79,12 @@ export function GalleryManager({ initialImages }: { initialImages: SheetGalleryI
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this photo? This can't be undone.")) return
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+
+  const confirmDelete = async () => {
+    const id = pendingDeleteId
+    setPendingDeleteId(null)
+    if (!id) return
     try {
       const res = await fetch(`/api/staff/gallery/${id}`, { method: 'DELETE' })
       const body = await res.json().catch(() => null)
@@ -182,9 +187,9 @@ export function GalleryManager({ initialImages }: { initialImages: SheetGalleryI
               <MotionButton
                 variant="outline"
                 size="icon-sm"
-                onClick={() => handleDelete(image.id)}
+                onClick={() => setPendingDeleteId(image.id)}
                 aria-label="Delete photo"
-                className="absolute right-2 top-2 border-white/30 bg-black/40 text-white hover:bg-black/60"
+                className="absolute right-2 top-2 size-11 border-white/30 bg-black/40 text-white hover:bg-black/60"
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </MotionButton>
@@ -192,6 +197,14 @@ export function GalleryManager({ initialImages }: { initialImages: SheetGalleryI
           </div>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title="Delete this photo?"
+        description="This can't be undone."
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </div>
   )
 }

@@ -97,12 +97,12 @@ function DockIcon({
   // Icons within 120px of the pointer scale up to 44px, tapering back to
   // the 32px resting size beyond that — classic dock magnification. When
   // hover isn't available (touch), the output range collapses to a flat
-  // 32px so the transform still returns a MotionValue<number> (keeping
-  // useSpring's input type consistent) while never actually magnifying.
+  // 44px instead — that resting size is also the tap target, and 32px
+  // falls short of the 44x44px minimum touch target guideline.
   const targetSize = useTransform(
     distance,
     [-120, 0, 120],
-    canHover ? [32, 44, 32] : [32, 32, 32]
+    canHover ? [32, 44, 32] : [44, 44, 44]
   )
   const size = useSpring(targetSize, {
     mass: 0.1,

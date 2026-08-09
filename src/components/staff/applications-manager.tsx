@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { MotionButton } from '@/components/patterns/motion-link'
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/components/ui/select'
+import { ConfirmDialog } from '@/components/staff/confirm-dialog'
 import type { ApplicationStatus, SheetApplication } from '@/lib/sheet-types'
 
 const STATUSES: ApplicationStatus[] = ['Pending', 'Reviewed', 'Accepted', 'Rejected']
@@ -38,8 +39,12 @@ export function ApplicationsManager({ initialApplications }: { initialApplicatio
     }
   }
 
-  const handleDelete = async (app: SheetApplication) => {
-    if (!confirm(`Delete ${app.name || 'this application'}? This can't be undone.`)) return
+  const [pendingDelete, setPendingDelete] = useState<SheetApplication | null>(null)
+
+  const confirmDelete = async () => {
+    const app = pendingDelete
+    setPendingDelete(null)
+    if (!app) return
     const previous = applications
     setApplications((prev) => prev.filter((a) => a.id !== app.id))
     setError(null)
@@ -92,12 +97,20 @@ export function ApplicationsManager({ initialApplications }: { initialApplicatio
                 ))}
               </SelectPopup>
             </Select>
-            <MotionButton variant="outline" size="icon-sm" onClick={() => handleDelete(app)} aria-label="Delete application">
+            <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => setPendingDelete(app)} aria-label="Delete application">
               <Trash2 className="h-3.5 w-3.5" />
             </MotionButton>
           </div>
         </Card>
       ))}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        title={`Delete ${pendingDelete?.name || 'this application'}?`}
+        description="This can't be undone."
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   )
 }

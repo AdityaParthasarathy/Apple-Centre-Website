@@ -5,6 +5,7 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { MotionButton } from '@/components/patterns/motion-link'
 import { ImageUploadField } from '@/components/staff/image-upload-field'
+import { ConfirmDialog } from '@/components/staff/confirm-dialog'
 import { inputClass } from '@/lib/utils'
 import type { SheetFacility } from '@/lib/sheet-types'
 
@@ -63,8 +64,12 @@ export function FacilitiesManager({ initialFacilities }: { initialFacilities: Sh
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this facility? This can't be undone.")) return
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+
+  const confirmDelete = async () => {
+    const id = pendingDeleteId
+    setPendingDeleteId(null)
+    if (!id) return
     try {
       const res = await fetch(`/api/staff/facilities/${id}`, { method: 'DELETE' })
       const body = await res.json().catch(() => null)
@@ -132,16 +137,24 @@ export function FacilitiesManager({ initialFacilities }: { initialFacilities: Sh
               <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{facility.description}</p>
             </div>
             <div className="flex shrink-0 gap-2">
-              <MotionButton variant="outline" size="icon-sm" onClick={() => startEdit(facility)} aria-label="Edit">
+              <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => startEdit(facility)} aria-label="Edit">
                 <Pencil className="h-3.5 w-3.5" />
               </MotionButton>
-              <MotionButton variant="outline" size="icon-sm" onClick={() => handleDelete(facility.id)} aria-label="Delete">
+              <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => setPendingDeleteId(facility.id)} aria-label="Delete">
                 <Trash2 className="h-3.5 w-3.5" />
               </MotionButton>
             </div>
           </Card>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title="Delete this facility?"
+        description="This can't be undone."
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </div>
   )
 }

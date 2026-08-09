@@ -1,11 +1,14 @@
 'use client'
 
 import { AnimatePresence, motion } from 'motion/react'
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { useLenis } from 'lenis/react'
 import Image from 'next/image'
 import { X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { isExternalImage } from '@/lib/utils'
+
+const FOCUSABLE_SELECTOR =
+  'a[href], button:not([disabled]), textarea, input, select, [tabindex]:not([tabindex="-1"])'
 
 export interface LightboxImage {
   id: string
@@ -26,6 +29,8 @@ const navButtonClass =
 export function GalleryLightbox({ images, activeIndex, onIndexChange }: GalleryLightboxProps) {
   const image = activeIndex !== null ? (images[activeIndex] ?? null) : null
   const lenis = useLenis()
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const previouslyFocused = useRef<HTMLElement | null>(null)
 
   const goNext = useCallback(() => {
     if (activeIndex === null) return
@@ -41,10 +46,37 @@ export function GalleryLightbox({ images, activeIndex, onIndexChange }: GalleryL
 
   useEffect(() => {
     if (!image) return
+
+    // Standard modal focus handling: remember what had focus, move focus
+    // into the dialog, trap Tab inside it while open, and give focus back
+    // to the trigger on close — without this, a keyboard user's focus is
+    // left behind on whatever gallery thumbnail they activated, invisible
+    // underneath the now-open overlay.
+    previouslyFocused.current = document.activeElement as HTMLElement | null
+    const focusables = () =>
+      Array.from(dialogRef.current?.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR) ?? [])
+    focusables()[0]?.focus()
+
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close()
-      else if (e.key === 'ArrowRight') goNext()
+      if (e.key === 'Escape') {
+        close()
+        return
+      }
+      if (e.key === 'ArrowRight') goNext()
       else if (e.key === 'ArrowLeft') goPrev()
+
+      if (e.key !== 'Tab') return
+      const items = focusables()
+      if (items.length === 0) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
     }
     document.addEventListener('keydown', handleKeyDown)
     const previousOverflow = document.body.style.overflow
@@ -58,6 +90,7 @@ export function GalleryLightbox({ images, activeIndex, onIndexChange }: GalleryL
       document.removeEventListener('keydown', handleKeyDown)
       document.body.style.overflow = previousOverflow
       lenis?.start()
+      previouslyFocused.current?.focus()
     }
   }, [image, close, goNext, goPrev, lenis])
 
@@ -66,6 +99,10 @@ export function GalleryLightbox({ images, activeIndex, onIndexChange }: GalleryL
       {image && (
         <motion.div
           key="gallery-lightbox-backdrop"
+          ref={dialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label={image.title}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

@@ -2,6 +2,7 @@ import { SiteHeader } from "@/components/nav/site-header";
 import { SiteFooter } from "@/components/footer/site-footer";
 import { FloatingDock, type DockItem } from "@/components/patterns/floating-dock";
 import { SmoothScroll } from "@/components/patterns/smooth-scroll";
+import { SkipLink } from "@/components/patterns/skip-link";
 import { Home, GraduationCap, FolderKanban, Calendar, Images, Users } from "lucide-react";
 
 const dockItems: DockItem[] = [
@@ -20,10 +21,11 @@ export default function SiteLayout({
 }>) {
   return (
     <SmoothScroll>
+      <SkipLink />
       <FloatingDock items={dockItems} />
       <div className="isolate flex flex-col min-h-screen">
         <SiteHeader />
-        <main className="flex-1 pb-24">{children}</main>
+        <main id="main-content" className="flex-1 pb-24">{children}</main>
         <SiteFooter />
       </div>
     </SmoothScroll>

@@ -5,6 +5,7 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { MotionButton } from '@/components/patterns/motion-link'
+import { ConfirmDialog } from '@/components/staff/confirm-dialog'
 import { inputClass } from '@/lib/utils'
 import type { SheetAnnouncement } from '@/lib/sheet-types'
 
@@ -79,8 +80,12 @@ export function AnnouncementsManager({ initialAnnouncements }: { initialAnnounce
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Delete this announcement? This can't be undone.")) return
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+
+  const confirmDelete = async () => {
+    const id = pendingDeleteId
+    setPendingDeleteId(null)
+    if (!id) return
     try {
       const res = await fetch(`/api/staff/announcements/${id}`, { method: 'DELETE' })
       const body = await res.json().catch(() => null)
@@ -158,16 +163,24 @@ export function AnnouncementsManager({ initialAnnouncements }: { initialAnnounce
               <MotionButton variant="outline" size="sm" onClick={() => togglePublished(item)}>
                 {item.published ? 'Unpublish' : 'Publish'}
               </MotionButton>
-              <MotionButton variant="outline" size="icon-sm" onClick={() => startEdit(item)} aria-label="Edit">
+              <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => startEdit(item)} aria-label="Edit">
                 <Pencil className="h-3.5 w-3.5" />
               </MotionButton>
-              <MotionButton variant="outline" size="icon-sm" onClick={() => handleDelete(item.id)} aria-label="Delete">
+              <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => setPendingDeleteId(item.id)} aria-label="Delete">
                 <Trash2 className="h-3.5 w-3.5" />
               </MotionButton>
             </div>
           </Card>
         ))}
       </div>
+
+      <ConfirmDialog
+        open={pendingDeleteId !== null}
+        title="Delete this announcement?"
+        description="This can't be undone."
+        onConfirm={confirmDelete}
+        onCancel={() => setPendingDeleteId(null)}
+      />
     </div>
   )
 }

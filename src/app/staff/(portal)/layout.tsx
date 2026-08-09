@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { getFacultySession } from '@/lib/session'
 import { LogoutButton } from '@/components/staff/logout-button'
 import { PortalNav } from '@/components/staff/portal-nav'
+import { SkipLink } from '@/components/patterns/skip-link'
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const session = await getFacultySession()
@@ -13,6 +14,7 @@ export default async function PortalLayout({ children }: { children: React.React
 
   return (
     <div className="flex min-h-screen flex-col">
+      <SkipLink />
       <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6">
           <div className="flex items-center justify-between gap-4">
@@ -30,7 +32,7 @@ export default async function PortalLayout({ children }: { children: React.React
           <PortalNav />
         </div>
       </header>
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">{children}</main>
+      <main id="main-content" className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6">{children}</main>
     </div>
   )
 }
