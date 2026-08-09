@@ -119,6 +119,19 @@ export function ApplyForm() {
         />
       </div>
 
+      <div>
+        <label htmlFor="projects" className="mb-1.5 block text-sm font-medium text-foreground">
+          Projects / Portfolio <span className="font-normal text-muted-foreground">(optional)</span>
+        </label>
+        <textarea
+          id="projects"
+          name="projects"
+          rows={3}
+          placeholder="Links to anything you've built — GitHub, an App Store listing, a Devpost entry, a portfolio site — or just describe a project you're proud of."
+          className={inputClass}
+        />
+      </div>
+
       {error && (
         <p className="text-sm text-destructive" role="alert">
           {error}

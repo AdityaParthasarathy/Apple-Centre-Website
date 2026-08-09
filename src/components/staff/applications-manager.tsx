@@ -82,6 +82,9 @@ export function ApplicationsManager({ initialApplications }: { initialApplicatio
               {app.email} · {app.phone || 'No phone'} · {app.year}
             </p>
             {app.skills && <p className="mt-1 text-xs text-muted-foreground">Skills: {app.skills}</p>}
+            {app.projects && (
+              <p className="mt-1 text-xs text-muted-foreground">Projects: {app.projects}</p>
+            )}
           </div>
 
           <div className="flex shrink-0 items-center gap-2">

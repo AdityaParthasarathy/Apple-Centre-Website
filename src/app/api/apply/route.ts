@@ -8,6 +8,7 @@ interface Application {
   phone: string
   year: string
   skills: string
+  projects: string
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -21,6 +22,7 @@ function parseApplication(formData: FormData): Application | null {
     phone: get('phone'),
     year: get('year'),
     skills: get('skills'),
+    projects: get('projects'),
   }
 
   const hasRequiredFields = application.name && application.email && application.year
@@ -66,6 +68,7 @@ async function sendNotificationEmail(application: Application) {
       <p><strong>Phone:</strong> ${escapeHtml(application.phone) || '&mdash;'}</p>
       <p><strong>Year:</strong> ${escapeHtml(application.year)}</p>
       <p><strong>Skills:</strong> ${escapeHtml(application.skills) || '&mdash;'}</p>
+      <p><strong>Projects / Portfolio:</strong> ${escapeHtml(application.projects) || '&mdash;'}</p>
     `,
   })
 }

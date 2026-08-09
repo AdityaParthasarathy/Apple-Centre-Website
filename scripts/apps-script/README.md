@@ -34,10 +34,12 @@ disappears.
 `team`, `technologies`, `topics`, and `expertise` are comma-separated text
 in a single cell (e.g. `Swift, SwiftUI, Xcode`), not separate columns.
 
-Your existing `Applications` tab needs two more columns added if it doesn't
-already have them: `id` and `status`. Its other columns should already be
-`name`, `email`, `phone`, `year`, `skills` (whatever the Apply form has been
-sending) — a `submittedAt` column is used if present, but not required.
+Your existing `Applications` tab needs a `projects` column added (a free-text
+field where applicants list or link work they've already built), plus `id`
+and `status` if it doesn't already have them. Its other columns should
+already be `name`, `email`, `phone`, `year`, `skills` (whatever the Apply
+form has been sending) — a `submittedAt` column is used if present, but not
+required.
 
 ## 2. Create a Drive folder for gallery uploads
 

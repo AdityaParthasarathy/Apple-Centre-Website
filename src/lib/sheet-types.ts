@@ -48,6 +48,7 @@ export interface SheetApplication {
   phone: string
   year: string
   skills: string
+  projects: string
   status: ApplicationStatus
   submittedAt?: string
 }

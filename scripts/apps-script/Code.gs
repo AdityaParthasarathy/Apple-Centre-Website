@@ -172,6 +172,21 @@ function appendRow(sheetName, rowObject) {
   });
 }
 
+// A handful of early Applications rows got their id written as a plain
+// ISO-timestamp string (e.g. "2026-08-02T09:21:01.720Z") before ids
+// switched to UUIDs. Sheets auto-converts anything date-shaped into a real
+// Date-typed cell regardless of which column it's in — readRows() then
+// serializes that Date back to the same ISO string the client already has,
+// so listing looks completely normal. But update/delete re-read the sheet
+// and compared the raw cell with plain String(), and String(dateObject)
+// produces "Sun Aug 02 2026 09:21:01 GMT+0000 (...)" — never equal to the
+// ISO string being matched against, so the row was silently unfindable.
+// Same normalization dateOnly()/isoString() already apply elsewhere.
+function idsMatch(cellValue, id) {
+  var cellStr = cellValue instanceof Date ? cellValue.toISOString() : String(cellValue);
+  return cellStr === String(id);
+}
+
 function updateRowById(sheetName, id, updates) {
   return withLock(function () {
     var sheet = getSheet(sheetName);
@@ -183,7 +198,7 @@ function updateRowById(sheetName, id, updates) {
     if (idCol === -1) throw new Error('Sheet "' + sheetName + '" has no "id" column.');
 
     for (var r = 1; r < values.length; r++) {
-      if (String(values[r][idCol]) === String(id)) {
+      if (idsMatch(values[r][idCol], id)) {
         Object.keys(updates).forEach(function (key) {
           var col = headers.indexOf(key);
           if (col !== -1) sheet.getRange(r + 1, col + 1).setValue(updates[key]);
@@ -206,7 +221,7 @@ function deleteRowById(sheetName, id) {
     if (idCol === -1) throw new Error('Sheet "' + sheetName + '" has no "id" column.');
 
     for (var r = 1; r < values.length; r++) {
-      if (String(values[r][idCol]) === String(id)) {
+      if (idsMatch(values[r][idCol], id)) {
         sheet.deleteRow(r + 1);
         return true;
       }
@@ -254,6 +269,7 @@ function handleLogApplication(body) {
     phone: body.phone,
     year: body.year,
     skills: body.skills,
+    projects: body.projects || '',
     status: 'Pending',
     submittedAt: new Date().toISOString(),
   });
@@ -269,6 +285,7 @@ function handleListApplications() {
       phone: row.phone || '',
       year: row.year || '',
       skills: row.skills || '',
+      projects: row.projects || '',
       status: row.status || 'Pending',
       submittedAt: isoString(row.submittedAt),
     };
