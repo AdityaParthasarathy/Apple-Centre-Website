@@ -24,7 +24,7 @@ export function FacultySectionClient({ team }: { team: Faculty[] }) {
           viewport={{ once: true }}
           className="mb-16 max-w-2xl"
         >
-          <p className="mb-3 font-mono text-xs font-medium uppercase tracking-[0.15em] text-accent">
+          <p className="mb-3 text-sm font-bold uppercase tracking-wide text-accent">
             Team
           </p>
           <SectionHeading size="xl">Meet the team</SectionHeading>

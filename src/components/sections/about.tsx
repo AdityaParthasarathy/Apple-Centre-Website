@@ -55,7 +55,7 @@ export function AboutSection() {
 
             <div className="mt-10 grid gap-8 border-t border-border pt-8 sm:grid-cols-2">
               <div>
-                <h3 className="mb-2 font-mono text-xs font-medium uppercase tracking-[0.15em] text-foreground">
+                <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-foreground">
                   Vision
                 </h3>
                 <p className="text-sm text-muted-foreground">
@@ -63,7 +63,7 @@ export function AboutSection() {
                 </p>
               </div>
               <div>
-                <h3 className="mb-2 font-mono text-xs font-medium uppercase tracking-[0.15em] text-foreground">
+                <h3 className="mb-2 text-sm font-bold uppercase tracking-wide text-foreground">
                   Mission
                 </h3>
                 <p className="text-sm text-muted-foreground">

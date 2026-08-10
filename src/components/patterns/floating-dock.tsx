@@ -3,6 +3,8 @@
 import {
   motion,
   useMotionValue,
+  useMotionValueEvent,
+  useScroll,
   useSpring,
   useTransform,
   type MotionValue,
@@ -52,6 +54,25 @@ export function FloatingDock({ items, className }: FloatingDockProps) {
   const mouseX = useMotionValue(Infinity)
   const canHover = useHoverCapable()
 
+  // A fixed-position dock always sits at the same screen coordinates
+  // regardless of scroll position, so it ends up overlapping whatever
+  // content happens to be there — confirmed happening on several pages
+  // (About/Mission, Inside the Centre photos, the Events calendar). Same
+  // hide-on-scroll-down / reveal-on-scroll-up treatment SiteHeader already
+  // uses solves it: the dock ducks away exactly when someone scrolls into
+  // new content, and comes back the moment they scroll back up.
+  const { scrollY } = useScroll()
+  const [hidden, setHidden] = useState(false)
+
+  useMotionValueEvent(scrollY, 'change', (latest) => {
+    const previous = scrollY.getPrevious() ?? 0
+    if (latest < 80) {
+      setHidden(false)
+      return
+    }
+    setHidden(latest > previous)
+  })
+
   return (
     <motion.nav
       aria-label="Primary"
@@ -61,8 +82,14 @@ export function FloatingDock({ items, className }: FloatingDockProps) {
       // composes with the animated y into a single transform — a Tailwind
       // -translate-x-1/2 class would otherwise fight motion's inline style.
       initial={{ opacity: 0, y: 20, x: '-50%' }}
-      animate={{ opacity: 1, y: 0, x: '-50%' }}
-      transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
+      animate={{ opacity: 1, y: hidden ? 140 : 0, x: '-50%' }}
+      // y gets its own fast transition so the scroll-driven hide/show reacts
+      // immediately — everything else keeps the slower, delayed entrance
+      // that plays once on mount.
+      transition={{
+        y: { duration: 0.25, ease: [0.16, 1, 0.3, 1] },
+        default: { duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] },
+      }}
       className={cn(
         'fixed bottom-6 left-1/2 z-40 flex items-end gap-2 rounded-2xl border border-border bg-background/80 px-3 py-2.5 shadow-lg backdrop-blur-xl supports-[backdrop-filter]:bg-background/60',
         className
