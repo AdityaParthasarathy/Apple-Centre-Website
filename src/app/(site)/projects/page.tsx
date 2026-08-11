@@ -33,7 +33,7 @@ export default async function ProjectsPage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {projects.map((project) => (
               <Link key={project.id} href={`/projects/${project.id}`}>
-                <Card className="group h-full overflow-hidden transition-shadow hover:shadow-md">
+                <Card className="group h-full overflow-hidden">
                   <div className="relative h-48 overflow-hidden">
                     {project.image ? (
                       <Image

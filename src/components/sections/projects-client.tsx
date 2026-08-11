@@ -40,7 +40,7 @@ export function ProjectsSectionClient({ projects }: { projects: Project[] }) {
               viewport={{ once: true }}
             >
               <Link href={`/projects/${project.id}`}>
-                <Card className="h-full overflow-hidden group hover:shadow-md transition-shadow">
+                <Card className="h-full overflow-hidden group">
                   <div className="relative h-40 overflow-hidden">
                     {project.image ? (
                       <Image

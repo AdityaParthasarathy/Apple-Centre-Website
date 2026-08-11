@@ -10,7 +10,11 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
     <Component
       ref={ref}
       className={cn(
-        "rounded-lg border border-border bg-card text-card-foreground transition-all duration-300 hover:-translate-y-1 hover:border-border hover:shadow-lg",
+        // Elevation declared once (shadow), not doubled up with a border
+        // underneath it — a 1px border plus a wide soft shadow is the
+        // "ghost card" look. Resting shadow-sm gives real depth before any
+        // interaction; hover deepens it and lifts the card slightly.
+        "rounded-lg bg-card text-card-foreground shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg",
         className
       )}
       {...props}

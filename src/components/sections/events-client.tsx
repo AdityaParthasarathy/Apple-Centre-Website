@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import Link from 'next/link'
 import { Container } from '@/components/ui/container'
 import { SectionHeading } from '@/components/ui/section-heading'
@@ -7,6 +8,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { EventsCalendar } from '@/components/patterns/events-calendar'
 import type { Event } from '@/content/events'
+import { isExternalImage } from '@/lib/utils'
 import { motion } from 'motion/react'
 import { Calendar, MapPin } from 'lucide-react'
 
@@ -47,23 +49,35 @@ export function EventsSectionClient({ events }: { events: Event[] }) {
                 viewport={{ once: true }}
               >
                 <Link href={`/events/${event.id}`}>
-                  <Card className="p-5 transition-shadow hover:shadow-md">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <h3 className="font-semibold text-foreground">{event.title}</h3>
-                      <Badge variant="secondary" className="text-xs capitalize shrink-0">
-                        {event.category}
-                      </Badge>
+                  <Card className="flex gap-4 p-4">
+                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg">
+                      <Image
+                        src={event.image}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        sizes="64px"
+                        unoptimized={isExternalImage(event.image)}
+                      />
                     </div>
-                    <p className="text-sm text-muted-foreground mb-3">{event.description}</p>
-                    <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                      <span className="flex items-center gap-1.5">
-                        <Calendar className="h-3.5 w-3.5" />
-                        {event.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} &middot; {event.time}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <MapPin className="h-3.5 w-3.5" />
-                        {event.location}
-                      </span>
+                    <div className="min-w-0 flex-1">
+                      <div className="mb-1 flex items-start justify-between gap-2">
+                        <h3 className="font-semibold text-foreground">{event.title}</h3>
+                        <Badge variant="secondary" className="text-xs capitalize shrink-0">
+                          {event.category}
+                        </Badge>
+                      </div>
+                      <p className="mb-2 line-clamp-1 text-sm text-muted-foreground">{event.description}</p>
+                      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5" />
+                          {event.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} &middot; {event.time}
+                        </span>
+                        <span className="flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5" />
+                          {event.location}
+                        </span>
+                      </div>
                     </div>
                   </Card>
                 </Link>
