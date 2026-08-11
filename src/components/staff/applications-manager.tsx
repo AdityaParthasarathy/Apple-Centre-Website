@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import { toast } from 'sonner'
 import { ExternalLink, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -35,9 +36,11 @@ export function ApplicationsManager({ initialApplications }: { initialApplicatio
         body: JSON.stringify({ status, name: app?.name, email: app?.email }),
       })
       if (!res.ok) throw new Error()
+      toast.success(`Marked as ${status}`)
     } catch {
       setApplications(previous)
       setError('Failed to update status. Please try again.')
+      toast.error('Failed to update status. Please try again.')
     }
   }
 
@@ -54,9 +57,12 @@ export function ApplicationsManager({ initialApplications }: { initialApplicatio
       const res = await fetch(`/api/staff/applications/${app.id}`, { method: 'DELETE' })
       const body = await res.json().catch(() => null)
       if (!res.ok) throw new Error(body?.error ?? 'Failed to delete the application.')
+      toast.success('Application deleted')
     } catch (err) {
       setApplications(previous)
-      setError(err instanceof Error ? err.message : 'Failed to delete the application.')
+      const message = err instanceof Error ? err.message : 'Failed to delete the application.'
+      setError(message)
+      toast.error(message)
     }
   }
 

@@ -3,7 +3,6 @@ import Image from 'next/image'
 import { Mail } from 'lucide-react'
 import { Container } from '@/components/ui/container'
 import { SectionHeading } from '@/components/ui/section-heading'
-import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AvatarPlaceholder } from '@/components/ui/avatar-placeholder'
 import { FadeIn } from '@/components/patterns/fade-in'
@@ -39,46 +38,52 @@ export default async function FacultyPage() {
       </section>
 
       <section className="py-16 sm:py-24">
-        <Container>
-          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <Container size="lg">
+          <div className="divide-y divide-border border-t border-border">
             {faculty.map((person) => (
-              <Card key={person.id} className="overflow-hidden p-6 text-center">
-                <div className="relative mx-auto mb-4 h-28 w-28 overflow-hidden rounded-full">
+              <div key={person.id} className="flex flex-col gap-6 py-10 sm:flex-row sm:items-start">
+                <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-xl">
                   {person.image ? (
                     <Image
                       src={person.image}
                       alt={person.name}
                       fill
                       className="object-cover"
-                      sizes="112px"
+                      sizes="128px"
                       unoptimized={isExternalImage(person.image)}
                     />
                   ) : (
-                    <AvatarPlaceholder name={person.name} className="h-full w-full" />
+                    <AvatarPlaceholder name={person.name} className="h-full w-full rounded-xl" />
                   )}
                 </div>
-                <h2 className="font-semibold text-foreground">{person.name}</h2>
-                <p className="mb-3 text-sm text-muted-foreground">{person.role}</p>
-                <p className="mb-4 text-sm text-muted-foreground">{person.bio}</p>
-                {person.expertise && person.expertise.length > 0 && (
-                  <div className="mb-4 flex flex-wrap justify-center gap-1.5">
-                    {person.expertise.map((skill) => (
-                      <Badge key={skill} variant="outline" className="text-xs">
-                        {skill}
-                      </Badge>
-                    ))}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                    <h2 className="text-xl font-semibold text-foreground">{person.name}</h2>
+                    <p className="text-sm text-accent">{person.role}</p>
                   </div>
-                )}
-                {person.contact && (
-                  <a
-                    href={`mailto:${person.contact}`}
-                    className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-                  >
-                    <Mail className="h-3.5 w-3.5" />
-                    {person.contact}
-                  </a>
-                )}
-              </Card>
+                  <p className="mt-3 max-w-2xl text-muted-foreground">{person.bio}</p>
+                  <div className="mt-4 flex flex-wrap items-center gap-3">
+                    {person.expertise && person.expertise.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {person.expertise.map((skill) => (
+                          <Badge key={skill} variant="outline" className="text-xs">
+                            {skill}
+                          </Badge>
+                        ))}
+                      </div>
+                    )}
+                    {person.contact && (
+                      <a
+                        href={`mailto:${person.contact}`}
+                        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+                      >
+                        <Mail className="h-3.5 w-3.5" />
+                        {person.contact}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         </Container>

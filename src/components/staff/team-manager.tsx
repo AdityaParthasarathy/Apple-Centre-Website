@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Pencil, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { MotionButton } from '@/components/patterns/motion-link'
@@ -53,6 +54,7 @@ export function TeamManager({ initialMembers }: { initialMembers: SheetTeamMembe
         const body = await res.json().catch(() => null)
         if (!res.ok) throw new Error(body?.error ?? 'Failed to update the team member.')
         setMembers((prev) => prev.map((m) => (m.id === editingId ? { ...m, ...form, id: editingId } : m)))
+        toast.success('Team member updated')
       } else {
         const res = await fetch('/api/staff/team', {
           method: 'POST',
@@ -62,10 +64,13 @@ export function TeamManager({ initialMembers }: { initialMembers: SheetTeamMembe
         const body = await res.json().catch(() => null)
         if (!res.ok) throw new Error(body?.error ?? 'Failed to save the team member.')
         if (body?.member) setMembers((prev) => [...prev, body.member as SheetTeamMember])
+        toast.success('Team member added')
       }
       cancelEdit()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      setError(message)
+      toast.error(message)
     } finally {
       setSubmitting(false)
     }
@@ -83,8 +88,11 @@ export function TeamManager({ initialMembers }: { initialMembers: SheetTeamMembe
       if (!res.ok) throw new Error(body?.error ?? 'Failed to remove the team member.')
       setMembers((prev) => prev.filter((m) => m.id !== id))
       if (editingId === id) cancelEdit()
+      toast.success('Team member removed')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to remove the team member.')
+      const message = err instanceof Error ? err.message : 'Failed to remove the team member.'
+      setError(message)
+      toast.error(message)
     }
   }
 

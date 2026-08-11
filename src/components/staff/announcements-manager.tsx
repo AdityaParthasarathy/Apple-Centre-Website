@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Pencil, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -46,6 +47,7 @@ export function AnnouncementsManager({ initialAnnouncements }: { initialAnnounce
         const resBody = await res.json().catch(() => null)
         if (!res.ok) throw new Error(resBody?.error ?? 'Failed to update the announcement.')
         setAnnouncements((prev) => prev.map((a) => (a.id === editingId ? { ...a, ...form } : a)))
+        toast.success('Announcement updated')
       } else {
         const res = await fetch('/api/staff/announcements', {
           method: 'POST',
@@ -55,10 +57,13 @@ export function AnnouncementsManager({ initialAnnouncements }: { initialAnnounce
         const resBody = await res.json().catch(() => null)
         if (!res.ok) throw new Error(resBody?.error ?? 'Failed to save the announcement.')
         if (resBody?.announcement) setAnnouncements((prev) => [resBody.announcement as SheetAnnouncement, ...prev])
+        toast.success('Announcement posted')
       }
       cancelEdit()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      setError(message)
+      toast.error(message)
     } finally {
       setSubmitting(false)
     }
@@ -77,6 +82,7 @@ export function AnnouncementsManager({ initialAnnouncements }: { initialAnnounce
     } catch {
       setAnnouncements((prev) => prev.map((a) => (a.id === item.id ? item : a)))
       setError('Failed to update publish state.')
+      toast.error('Failed to update publish state.')
     }
   }
 
@@ -92,8 +98,11 @@ export function AnnouncementsManager({ initialAnnouncements }: { initialAnnounce
       if (!res.ok) throw new Error(body?.error ?? 'Failed to delete the announcement.')
       setAnnouncements((prev) => prev.filter((a) => a.id !== id))
       if (editingId === id) cancelEdit()
+      toast.success('Announcement deleted')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete the announcement.')
+      const message = err instanceof Error ? err.message : 'Failed to delete the announcement.'
+      setError(message)
+      toast.error(message)
     }
   }
 

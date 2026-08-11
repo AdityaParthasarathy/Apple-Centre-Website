@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Pencil, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { MotionButton } from '@/components/patterns/motion-link'
@@ -46,6 +47,7 @@ export function FacilitiesManager({ initialFacilities }: { initialFacilities: Sh
         const body = await res.json().catch(() => null)
         if (!res.ok) throw new Error(body?.error ?? 'Failed to update the facility.')
         setFacilities((prev) => prev.map((f) => (f.id === editingId ? { ...f, ...form, id: editingId } : f)))
+        toast.success('Facility updated')
       } else {
         const res = await fetch('/api/staff/facilities', {
           method: 'POST',
@@ -55,10 +57,13 @@ export function FacilitiesManager({ initialFacilities }: { initialFacilities: Sh
         const body = await res.json().catch(() => null)
         if (!res.ok) throw new Error(body?.error ?? 'Failed to save the facility.')
         if (body?.facility) setFacilities((prev) => [...prev, body.facility as SheetFacility])
+        toast.success('Facility added')
       }
       cancelEdit()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      setError(message)
+      toast.error(message)
     } finally {
       setSubmitting(false)
     }
@@ -76,8 +81,11 @@ export function FacilitiesManager({ initialFacilities }: { initialFacilities: Sh
       if (!res.ok) throw new Error(body?.error ?? 'Failed to delete the facility.')
       setFacilities((prev) => prev.filter((f) => f.id !== id))
       if (editingId === id) cancelEdit()
+      toast.success('Facility deleted')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete the facility.')
+      const message = err instanceof Error ? err.message : 'Failed to delete the facility.'
+      setError(message)
+      toast.error(message)
     }
   }
 

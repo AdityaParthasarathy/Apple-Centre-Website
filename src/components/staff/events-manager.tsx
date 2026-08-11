@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Pencil, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -86,6 +87,7 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
         const body = await res.json().catch(() => null)
         if (!res.ok) throw new Error(body?.error ?? 'Failed to update the event.')
         setEvents((prev) => prev.map((ev) => (ev.id === editingId ? { ...ev, ...payload, id: editingId } : ev)))
+        toast.success('Event updated')
       } else {
         const res = await fetch('/api/staff/events', {
           method: 'POST',
@@ -95,10 +97,13 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
         const body = await res.json().catch(() => null)
         if (!res.ok) throw new Error(body?.error ?? 'Failed to save the event.')
         if (body?.event) setEvents((prev) => [...prev, body.event as SheetEvent])
+        toast.success('Event added')
       }
       cancelEdit()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      setError(message)
+      toast.error(message)
     } finally {
       setSubmitting(false)
     }
@@ -116,8 +121,11 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
       if (!res.ok) throw new Error(body?.error ?? 'Failed to delete the event.')
       setEvents((prev) => prev.filter((ev) => ev.id !== id))
       if (editingId === id) cancelEdit()
+      toast.success('Event deleted')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete the event.')
+      const message = err instanceof Error ? err.message : 'Failed to delete the event.'
+      setError(message)
+      toast.error(message)
     }
   }
 

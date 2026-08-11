@@ -20,21 +20,18 @@ export function GallerySectionClient({ images }: { images: GalleryImage[] }) {
   return (
     <section className="py-20 sm:py-32">
       <Container>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className="mb-16 max-w-2xl"
-        >
-          <p className="mb-3 text-sm font-bold uppercase tracking-wide text-accent">
-            Gallery
-          </p>
+        <div className="mb-16 max-w-2xl">
           <SectionHeading size="xl">Moments from the Centre</SectionHeading>
-          <p className="mt-4 text-lg text-muted-foreground">
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            viewport={{ once: true }}
+            className="mt-4 text-lg text-muted-foreground"
+          >
             Workshops, events, and everyday life at the Centre.
-          </p>
-        </motion.div>
+          </motion.p>
+        </div>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {previewImages.map((image, idx) => (

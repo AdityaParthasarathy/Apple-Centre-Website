@@ -108,6 +108,36 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* Browser-native surfaces this design never explicitly draws — left at
+     their OS/UA defaults otherwise, which is the fastest tell that a page
+     was assembled rather than designed. */
+  ::selection {
+    background-color: color-mix(in oklch, var(--accent), transparent 75%);
+    color: var(--foreground);
+  }
+  input,
+  textarea {
+    caret-color: var(--accent);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--muted) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--muted);
+    border-radius: 9999px;
+    border: 2px solid var(--background);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--muted-foreground);
+  }
   h1,
   h2,
   h3,

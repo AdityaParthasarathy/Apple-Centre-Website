@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Pencil, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -64,6 +65,7 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
         const body = await res.json().catch(() => null)
         if (!res.ok) throw new Error(body?.error ?? 'Failed to update the program.')
         setPrograms((prev) => prev.map((p) => (p.id === editingId ? { ...p, ...form, id: editingId } : p)))
+        toast.success('Program updated')
       } else {
         const res = await fetch('/api/staff/programs', {
           method: 'POST',
@@ -73,10 +75,13 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
         const body = await res.json().catch(() => null)
         if (!res.ok) throw new Error(body?.error ?? 'Failed to save the program.')
         if (body?.program) setPrograms((prev) => [...prev, body.program as SheetProgram])
+        toast.success('Program added')
       }
       cancelEdit()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      setError(message)
+      toast.error(message)
     } finally {
       setSubmitting(false)
     }
@@ -94,8 +99,11 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
       if (!res.ok) throw new Error(body?.error ?? 'Failed to delete the program.')
       setPrograms((prev) => prev.filter((p) => p.id !== id))
       if (editingId === id) cancelEdit()
+      toast.success('Program deleted')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete the program.')
+      const message = err instanceof Error ? err.message : 'Failed to delete the program.'
+      setError(message)
+      toast.error(message)
     }
   }
 

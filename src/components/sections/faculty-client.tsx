@@ -17,21 +17,18 @@ export function FacultySectionClient({ team }: { team: Faculty[] }) {
   return (
     <section id="faculty" className="py-20 sm:py-32">
       <Container>
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          viewport={{ once: true }}
-          className="mb-16 max-w-2xl"
-        >
-          <p className="mb-3 text-sm font-bold uppercase tracking-wide text-accent">
-            Team
-          </p>
+        <div className="mb-16 max-w-2xl">
           <SectionHeading size="xl">Meet the team</SectionHeading>
-          <p className="mt-4 text-lg text-muted-foreground">
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.35, ease: [0.16, 1, 0.3, 1] }}
+            viewport={{ once: true }}
+            className="mt-4 text-lg text-muted-foreground"
+          >
             The people coordinating and running the Apple Centre at RIT.
-          </p>
-        </motion.div>
+          </motion.p>
+        </div>
 
         <AnimatedTestimonials testimonials={teamCards} />
       </Container>

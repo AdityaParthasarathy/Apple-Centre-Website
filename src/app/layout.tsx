@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Manrope, IBM_Plex_Mono } from "next/font/google";
+import { Toaster } from "sonner";
 import { MotionConfigProvider } from "@/components/patterns/motion-config-provider";
 import "./globals.css";
 
@@ -62,6 +63,16 @@ export default function RootLayout({
       </head>
       <body className="min-h-full bg-background text-foreground">
         <MotionConfigProvider>{children}</MotionConfigProvider>
+        <Toaster
+          position="top-center"
+          richColors
+          closeButton
+          toastOptions={{
+            classNames: {
+              toast: 'font-sans',
+            },
+          }}
+        />
       </body>
     </html>
   );

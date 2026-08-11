@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import Image from 'next/image'
+import { toast } from 'sonner'
 import { motion } from 'motion/react'
 import { Trash2, Upload } from 'lucide-react'
 import { Card } from '@/components/ui/card'
@@ -72,8 +73,11 @@ export function GalleryManager({ initialImages }: { initialImages: SheetGalleryI
       if (!res.ok) throw new Error(body?.error ?? 'Failed to upload the photo.')
       if (body?.image) setImages((prev) => [body.image as SheetGalleryImage, ...prev])
       resetForm()
+      toast.success('Photo uploaded')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      setError(message)
+      toast.error(message)
     } finally {
       setSubmitting(false)
     }
@@ -90,8 +94,11 @@ export function GalleryManager({ initialImages }: { initialImages: SheetGalleryI
       const body = await res.json().catch(() => null)
       if (!res.ok) throw new Error(body?.error ?? 'Failed to delete the photo.')
       setImages((prev) => prev.filter((img) => img.id !== id))
+      toast.success('Photo deleted')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete the photo.')
+      const message = err instanceof Error ? err.message : 'Failed to delete the photo.'
+      setError(message)
+      toast.error(message)
     }
   }
 

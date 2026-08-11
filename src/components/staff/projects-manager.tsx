@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { toast } from 'sonner'
 import { Pencil, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -65,6 +66,7 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
         const body = await res.json().catch(() => null)
         if (!res.ok) throw new Error(body?.error ?? 'Failed to update the project.')
         setProjects((prev) => prev.map((p) => (p.id === editingId ? { ...p, ...payload, id: editingId } : p)))
+        toast.success('Project updated')
       } else {
         const res = await fetch('/api/staff/projects', {
           method: 'POST',
@@ -74,10 +76,13 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
         const body = await res.json().catch(() => null)
         if (!res.ok) throw new Error(body?.error ?? 'Failed to save the project.')
         if (body?.project) setProjects((prev) => [...prev, body.project as SheetProject])
+        toast.success('Project added')
       }
       cancelEdit()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      setError(message)
+      toast.error(message)
     } finally {
       setSubmitting(false)
     }
@@ -95,8 +100,11 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
       if (!res.ok) throw new Error(body?.error ?? 'Failed to delete the project.')
       setProjects((prev) => prev.filter((p) => p.id !== id))
       if (editingId === id) cancelEdit()
+      toast.success('Project deleted')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete the project.')
+      const message = err instanceof Error ? err.message : 'Failed to delete the project.'
+      setError(message)
+      toast.error(message)
     }
   }
 
