@@ -1,11 +1,10 @@
 import type { Metadata } from 'next'
 import Image from 'next/image'
 import { Container } from '@/components/ui/container'
-import { SectionHeading } from '@/components/ui/section-heading'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
-import { FadeIn } from '@/components/patterns/fade-in'
+import { PageHero } from '@/components/patterns/page-hero'
 import { MotionLink } from '@/components/patterns/motion-link'
 import { getAllPrograms } from '@/lib/merge-programs'
 import { isExternalImage } from '@/lib/utils'
@@ -34,21 +33,11 @@ export default async function ProgramsPage() {
   const programs = await getAllPrograms()
   return (
     <>
-      <section className="border-b border-border bg-card py-20 sm:py-28">
-        <Container>
-          <div className="max-w-2xl">
-            <SectionHeading as="h1" size="xl">
-              Programs
-            </SectionHeading>
-            <FadeIn delay={0.15}>
-              <p className="mt-4 text-lg text-muted-foreground">
-                Comprehensive, hands-on programs designed to take you from fundamentals to shipping
-                real apps on the Apple ecosystem.
-              </p>
-            </FadeIn>
-          </div>
-        </Container>
-      </section>
+      <PageHero
+        title="Programs"
+        subtitle="Comprehensive, hands-on programs designed to take you from fundamentals to shipping real apps on the Apple ecosystem."
+        image="/centre-space/magic-keyboard.jpg"
+      />
 
       <section className="py-16 sm:py-24">
         <Container>

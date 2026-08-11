@@ -2,11 +2,10 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Container } from '@/components/ui/container'
-import { SectionHeading } from '@/components/ui/section-heading'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ProjectVisual } from '@/components/ui/project-visual'
-import { FadeIn } from '@/components/patterns/fade-in'
+import { PageHero } from '@/components/patterns/page-hero'
 import { getAllProjects } from '@/lib/merge-projects'
 import { isExternalImage } from '@/lib/utils'
 
@@ -23,20 +22,11 @@ export default async function ProjectsPage() {
   const projects = await getAllProjects()
   return (
     <>
-      <section className="border-b border-border bg-card py-20 sm:py-28">
-        <Container>
-          <div className="max-w-2xl">
-            <SectionHeading as="h1" size="xl">
-              Student Projects
-            </SectionHeading>
-            <FadeIn delay={0.15}>
-              <p className="mt-4 text-lg text-muted-foreground">
-                Real apps built by our students, from concept to the App Store.
-              </p>
-            </FadeIn>
-          </div>
-        </Container>
-      </section>
+      <PageHero
+        title="Student Projects"
+        subtitle="Real apps built by our students, from concept to the App Store."
+        image="/centre-space/imac-front.jpg"
+      />
 
       <section className="py-16 sm:py-24">
         <Container>

@@ -1,9 +1,8 @@
 import type { Metadata } from 'next'
 import { FileText, Search, Users, CheckCircle2 } from 'lucide-react'
 import { Container } from '@/components/ui/container'
-import { SectionHeading } from '@/components/ui/section-heading'
 import { ApplyForm } from '@/components/sections/apply-form'
-import { FadeIn } from '@/components/patterns/fade-in'
+import { PageHero } from '@/components/patterns/page-hero'
 
 export const metadata: Metadata = {
   title: 'Apply | Centre for Apple Technologies',
@@ -37,21 +36,11 @@ const steps = [
 export default function ApplyPage() {
   return (
     <>
-      <section className="border-b border-border bg-card py-20 sm:py-28">
-        <Container>
-          <div className="max-w-2xl">
-            <SectionHeading as="h1" size="xl">
-              Apply to Join
-            </SectionHeading>
-            <FadeIn delay={0.15}>
-              <p className="mt-4 text-lg text-muted-foreground">
-                Become part of the Centre for Apple Technologies. We&apos;re looking for curious,
-                driven students ready to build real things on the Apple ecosystem.
-              </p>
-            </FadeIn>
-          </div>
-        </Container>
-      </section>
+      <PageHero
+        title="Apply to Join"
+        subtitle="Become part of the Centre for Apple Technologies. We're looking for curious, driven students ready to build real things on the Apple ecosystem."
+        image="/centre-space/imac-back.jpg"
+      />
 
       <section className="border-b border-border py-16 sm:py-20">
         <Container>

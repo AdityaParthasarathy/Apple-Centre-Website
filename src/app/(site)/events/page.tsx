@@ -2,11 +2,10 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { Calendar, MapPin } from 'lucide-react'
 import { Container } from '@/components/ui/container'
-import { SectionHeading } from '@/components/ui/section-heading'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { EventsCalendar } from '@/components/patterns/events-calendar'
-import { FadeIn } from '@/components/patterns/fade-in'
+import { PageHero } from '@/components/patterns/page-hero'
 import { getAllEvents } from '@/lib/merge-events'
 
 export const metadata: Metadata = {
@@ -24,20 +23,11 @@ export default async function EventsPage() {
 
   return (
     <>
-      <section className="border-b border-border bg-card py-20 sm:py-28">
-        <Container>
-          <div className="max-w-2xl">
-            <SectionHeading as="h1" size="xl">
-              Events &amp; Workshops
-            </SectionHeading>
-            <FadeIn delay={0.15}>
-              <p className="mt-4 text-lg text-muted-foreground">
-                Hands-on workshops, talks, and hackathons happening at the Centre.
-              </p>
-            </FadeIn>
-          </div>
-        </Container>
-      </section>
+      <PageHero
+        title="Events & Workshops"
+        subtitle="Hands-on workshops, talks, and hackathons happening at the Centre."
+        image="/centre-space/entrance-sign.jpg"
+      />
 
       <section className="py-16 sm:py-24">
         <Container>

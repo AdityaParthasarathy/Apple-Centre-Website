@@ -2,10 +2,9 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import { Mail } from 'lucide-react'
 import { Container } from '@/components/ui/container'
-import { SectionHeading } from '@/components/ui/section-heading'
 import { Badge } from '@/components/ui/badge'
 import { AvatarPlaceholder } from '@/components/ui/avatar-placeholder'
-import { FadeIn } from '@/components/patterns/fade-in'
+import { PageHero } from '@/components/patterns/page-hero'
 import { getAllTeamMembers } from '@/lib/merge-team'
 import { isExternalImage } from '@/lib/utils'
 
@@ -22,20 +21,11 @@ export default async function FacultyPage() {
   const faculty = await getAllTeamMembers()
   return (
     <>
-      <section className="border-b border-border bg-card py-20 sm:py-28">
-        <Container>
-          <div className="max-w-2xl">
-            <SectionHeading as="h1" size="xl">
-              Meet the Team
-            </SectionHeading>
-            <FadeIn delay={0.15}>
-              <p className="mt-4 text-lg text-muted-foreground">
-                The people coordinating and running the Apple Centre at RIT.
-              </p>
-            </FadeIn>
-          </div>
-        </Container>
-      </section>
+      <PageHero
+        title="Meet the Team"
+        subtitle="The people coordinating and running the Apple Centre at RIT."
+        image="/centre-space/lab-angle-1.jpg"
+      />
 
       <section className="py-16 sm:py-24">
         <Container size="lg">

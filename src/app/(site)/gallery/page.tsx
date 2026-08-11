@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import { Container } from '@/components/ui/container'
-import { SectionHeading } from '@/components/ui/section-heading'
 import { GalleryBrowser } from '@/components/sections/gallery-browser'
-import { FadeIn } from '@/components/patterns/fade-in'
+import { PageHero } from '@/components/patterns/page-hero'
 import { getAllGalleryImages } from '@/lib/merge-gallery'
 
 export const metadata: Metadata = {
@@ -18,20 +17,11 @@ export default async function GalleryPage() {
   const images = await getAllGalleryImages()
   return (
     <>
-      <section className="border-b border-border bg-card py-20 sm:py-28">
-        <Container>
-          <div className="max-w-2xl">
-            <SectionHeading as="h1" size="xl">
-              Gallery
-            </SectionHeading>
-            <FadeIn delay={0.15}>
-              <p className="mt-4 text-lg text-muted-foreground">
-                Moments from workshops, events, and life at the Centre.
-              </p>
-            </FadeIn>
-          </div>
-        </Container>
-      </section>
+      <PageHero
+        title="Gallery"
+        subtitle="Moments from workshops, events, and life at the Centre."
+        image="/centre-space/lab-angle-2.jpg"
+      />
 
       <section className="py-16 sm:py-24">
         <Container>
