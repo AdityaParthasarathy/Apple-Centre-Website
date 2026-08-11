@@ -7,12 +7,14 @@ import { motion, useMotionValueEvent, useScroll } from 'motion/react'
 import { Container } from '@/components/ui/container'
 import { ExpandingSearch } from '@/components/patterns/expanding-search'
 import { ApplyNowButton } from '@/components/nav/apply-now-button'
-import { getSearchIndex } from '@/lib/search-index'
+import type { SearchItem } from '@/lib/search-index'
 
 // Primary navigation now lives in the floating dock (bottom of screen);
 // this header only carries brand identity and the search/apply actions.
-export function SiteHeader() {
-  const searchIndex = getSearchIndex()
+// searchIndex is fetched server-side (see (site)/layout.tsx) since it
+// merges in live Apps Script sheet data — a client component can't hit
+// that itself.
+export function SiteHeader({ searchIndex }: { searchIndex: SearchItem[] }) {
   const { scrollY } = useScroll()
   const [hidden, setHidden] = useState(false)
 

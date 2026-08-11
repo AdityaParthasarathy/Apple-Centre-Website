@@ -10,7 +10,7 @@ import Image from 'next/image'
 
 export function LabsFacilitiesSectionClient({ facilities }: { facilities: Facility[] }) {
   return (
-    <section className="py-20 sm:py-32">
+    <section id="facilities" className="py-20 sm:py-32">
       <Container>
         <div className="mb-16 max-w-2xl">
           <SectionHeading size="xl">Labs &amp; facilities</SectionHeading>

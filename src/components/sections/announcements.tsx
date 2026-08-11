@@ -25,7 +25,7 @@ export async function AnnouncementsSection() {
   if (announcements.length === 0) return null
 
   return (
-    <section className="border-b border-border bg-card py-6">
+    <section id="announcements" className="border-b border-border bg-card py-6">
       <Container>
         <div className="space-y-3">
           {announcements.map((item) => (

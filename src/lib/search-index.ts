@@ -1,9 +1,20 @@
-import { programs } from '@/content/programs'
-import { projects } from '@/content/projects'
-import { events } from '@/content/events'
-import { faculty } from '@/content/faculty'
+import { getAllPrograms } from '@/lib/merge-programs'
+import { getAllProjects } from '@/lib/merge-projects'
+import { getAllEvents } from '@/lib/merge-events'
+import { getAllTeamMembers } from '@/lib/merge-team'
+import { getAllFacilities } from '@/lib/merge-facilities'
+import { getAllGalleryImages } from '@/lib/merge-gallery'
+import { callAppsScript } from '@/lib/apps-script'
+import type { SheetAnnouncement } from '@/lib/sheet-types'
 
-export type SearchCategory = 'Program' | 'Project' | 'Event' | 'Faculty'
+export type SearchCategory =
+  | 'Program'
+  | 'Project'
+  | 'Event'
+  | 'Faculty'
+  | 'Facility'
+  | 'Gallery'
+  | 'Announcement'
 
 export interface SearchItem {
   id: string
@@ -14,7 +25,33 @@ export interface SearchItem {
   keywords: string[]
 }
 
-export function getSearchIndex(): SearchItem[] {
+async function loadPublishedAnnouncements(): Promise<SheetAnnouncement[]> {
+  try {
+    const result = await callAppsScript<{ items: SheetAnnouncement[] }>('listAnnouncements')
+    return result.items.filter((a) => a.published)
+  } catch {
+    // Apps Script not configured yet, or temporarily unreachable — search
+    // just skips announcements rather than breaking.
+    return []
+  }
+}
+
+/** Pulls from the same live-merged sources (static seed + faculty portal
+ *  sheet data) the pages themselves render from, so anything a staff member
+ *  adds is findable the moment it's published — not just the build-time
+ *  seed content. Server-only: hits the Apps Script sheet, so this can't run
+ *  from a client component. */
+export async function buildSearchIndex(): Promise<SearchItem[]> {
+  const [programs, projects, events, faculty, facilities, gallery, announcements] = await Promise.all([
+    getAllPrograms(),
+    getAllProjects(),
+    getAllEvents(),
+    getAllTeamMembers(),
+    getAllFacilities(),
+    getAllGalleryImages(),
+    loadPublishedAnnouncements(),
+  ])
+
   return [
     ...programs.map((p) => ({
       id: `program-${p.id}`,
@@ -47,6 +84,30 @@ export function getSearchIndex(): SearchItem[] {
       category: 'Faculty' as const,
       href: '/faculty',
       keywords: f.expertise ?? [],
+    })),
+    ...facilities.map((f) => ({
+      id: `facility-${f.id}`,
+      title: f.title,
+      description: f.description,
+      category: 'Facility' as const,
+      href: '/#facilities',
+      keywords: [],
+    })),
+    ...gallery.map((g) => ({
+      id: `gallery-${g.id}`,
+      title: g.title,
+      description: g.description,
+      category: 'Gallery' as const,
+      href: '/gallery',
+      keywords: [g.category],
+    })),
+    ...announcements.map((a) => ({
+      id: `announcement-${a.id}`,
+      title: a.title,
+      description: a.body,
+      category: 'Announcement' as const,
+      href: '/#announcements',
+      keywords: [],
     })),
   ]
 }
