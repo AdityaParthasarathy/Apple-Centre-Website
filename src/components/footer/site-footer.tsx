@@ -1,76 +1,90 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { Container } from '@/components/ui/container'
-import { Mail, MapPin, Phone } from 'lucide-react'
+import { buttonVariants } from '@/components/ui/button'
+import type { Program } from '@/content/programs'
+import { MapPin } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
-export function SiteFooter() {
+const PROGRAM_LINK_COUNT = 4
+
+// A dark ground, matching the CTA band right above it — the two read as one
+// continuous close to the page rather than a bold band dropping into a
+// plain white footer. Real program titles replace what used to be four
+// hardcoded, made-up course names — passed in from the layout (which
+// already fetches programs for search) rather than fetched here again, so
+// this stays a plain sync component instead of a second live round-trip to
+// the same sheet.
+export function SiteFooter({ programs }: { programs: Program[] }) {
+  const featuredPrograms = programs.slice(0, PROGRAM_LINK_COUNT)
+
   return (
-    <footer className="border-t border-border bg-card">
+    <footer className="bg-foreground text-background">
       <Container className="py-12 sm:py-16">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4 mb-8">
+        <div className="mb-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <Image src="/logo-icon.png" alt="" width={24} height={24} className="rounded-md" />
               <span className="font-semibold">Apple Centre</span>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-background/60">
               Innovation hub for Apple ecosystem technologies at RIT Chennai
             </p>
           </div>
 
-          {/* Links */}
+          {/* Programs — real titles, not placeholders */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-sm">Programs</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="/programs" className="hover:text-foreground transition">iOS Development</Link></li>
-              <li><Link href="/programs" className="hover:text-foreground transition">ARKit</Link></li>
-              <li><Link href="/programs" className="hover:text-foreground transition">ML & AI</Link></li>
-              <li><Link href="/programs" className="hover:text-foreground transition">Design Systems</Link></li>
+            <h3 className="text-sm font-semibold">Programs</h3>
+            <ul className="space-y-2 text-sm text-background/60">
+              {featuredPrograms.length > 0 ? (
+                featuredPrograms.map((program) => (
+                  <li key={program.id}>
+                    <Link href="/programs" className="transition hover:text-background">
+                      {program.title}
+                    </Link>
+                  </li>
+                ))
+              ) : (
+                <li>
+                  <Link href="/programs" className="transition hover:text-background">
+                    View all programs
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
 
           {/* Resources */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-sm">Resources</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li><Link href="/events" className="hover:text-foreground transition">Events</Link></li>
-              <li><Link href="/projects" className="hover:text-foreground transition">Projects</Link></li>
-              <li><Link href="/gallery" className="hover:text-foreground transition">Gallery</Link></li>
-              <li><Link href="/apply" className="hover:text-foreground transition">Apply</Link></li>
+            <h3 className="text-sm font-semibold">Resources</h3>
+            <ul className="space-y-2 text-sm text-background/60">
+              <li><Link href="/events" className="transition hover:text-background">Events</Link></li>
+              <li><Link href="/projects" className="transition hover:text-background">Projects</Link></li>
+              <li><Link href="/gallery" className="transition hover:text-background">Gallery</Link></li>
+              <li><Link href="/faculty" className="transition hover:text-background">Team</Link></li>
             </ul>
           </div>
 
-          {/* Contact */}
+          {/* Contact — only claims that are actually true */}
           <div className="space-y-4">
-            <h3 className="font-semibold text-sm">Get in Touch</h3>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                <span>RIT Chennai Campus</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Mail className="h-4 w-4" />
-                <a href="mailto:contact@rit-apple.edu" className="hover:text-foreground transition">
-                  contact@rit-apple.edu
-                </a>
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone className="h-4 w-4" />
-                <span>+91 (0) XXX-XXX-XXXX</span>
-              </li>
-            </ul>
+            <h3 className="text-sm font-semibold">Get in Touch</h3>
+            <p className="flex items-center gap-2 text-sm text-background/60">
+              <MapPin className="h-4 w-4 shrink-0" />
+              RIT Chennai Campus
+            </p>
+            <Link
+              href="/apply"
+              className={cn(buttonVariants({ size: 'sm', variant: 'secondary' }), 'bg-background/10 text-background hover:bg-background/20')}
+            >
+              Apply Now
+            </Link>
           </div>
         </div>
 
         {/* Bottom */}
-        <div className="border-t border-border pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
+        <div className="flex flex-col items-center gap-4 border-t border-background/10 pt-8 text-sm text-background/50 sm:flex-row sm:justify-between">
           <p>&copy; 2026 Centre for Apple Technologies, RIT. All rights reserved.</p>
-          <div className="flex gap-6">
-            <a href="#" className="hover:text-foreground transition">Privacy Policy</a>
-            <a href="#" className="hover:text-foreground transition">Terms of Service</a>
-            <a href="#" className="hover:text-foreground transition">Code of Conduct</a>
-          </div>
         </div>
       </Container>
     </footer>

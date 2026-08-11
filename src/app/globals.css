@@ -147,10 +147,10 @@
     font-family: var(--font-heading);
   }
   h1 {
-    @apply text-5xl font-extrabold tracking-tight;
+    @apply text-5xl font-black tracking-tight;
   }
   h2 {
-    @apply text-4xl font-bold tracking-tight;
+    @apply text-4xl font-extrabold tracking-tight;
   }
   h3 {
     @apply text-3xl font-bold tracking-tight;

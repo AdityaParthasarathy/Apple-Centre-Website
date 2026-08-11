@@ -4,6 +4,7 @@ import { FloatingDock, type DockItem } from "@/components/patterns/floating-dock
 import { SmoothScroll } from "@/components/patterns/smooth-scroll";
 import { SkipLink } from "@/components/patterns/skip-link";
 import { buildSearchIndex } from "@/lib/search-index";
+import { getAllPrograms } from "@/lib/merge-programs";
 import { Home, GraduationCap, FolderKanban, Calendar, Images, Users } from "lucide-react";
 
 // Search merges in live Apps Script sheet data (see lib/search-index.ts),
@@ -24,7 +25,10 @@ export default async function SiteLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const searchIndex = await buildSearchIndex();
+  // Fetched once and shared — buildSearchIndex would otherwise fetch
+  // programs a second time itself, doubling a POST call Next doesn't dedupe.
+  const programs = await getAllPrograms();
+  const searchIndex = await buildSearchIndex({ programs });
 
   return (
     <SmoothScroll>
@@ -33,7 +37,7 @@ export default async function SiteLayout({
       <div className="isolate flex flex-col min-h-screen">
         <SiteHeader searchIndex={searchIndex} />
         <main id="main-content" className="flex-1 pb-24">{children}</main>
-        <SiteFooter />
+        <SiteFooter programs={programs} />
       </div>
     </SmoothScroll>
   );

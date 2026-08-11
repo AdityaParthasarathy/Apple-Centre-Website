@@ -6,6 +6,7 @@ import { getAllFacilities } from '@/lib/merge-facilities'
 import { getAllGalleryImages } from '@/lib/merge-gallery'
 import { callAppsScript } from '@/lib/apps-script'
 import type { SheetAnnouncement } from '@/lib/sheet-types'
+import type { Program } from '@/content/programs'
 
 export type SearchCategory =
   | 'Program'
@@ -40,10 +41,16 @@ async function loadPublishedAnnouncements(): Promise<SheetAnnouncement[]> {
  *  sheet data) the pages themselves render from, so anything a staff member
  *  adds is findable the moment it's published — not just the build-time
  *  seed content. Server-only: hits the Apps Script sheet, so this can't run
- *  from a client component. */
-export async function buildSearchIndex(): Promise<SearchItem[]> {
+ *  from a client component.
+ *
+ *  Apps Script calls are POST requests, which Next's automatic fetch
+ *  memoization doesn't dedupe (only GET is deduped) — so a caller that
+ *  already fetched programs elsewhere in the same render (the footer does)
+ *  should pass them in here rather than triggering a second live round-trip
+ *  to the same sheet. */
+export async function buildSearchIndex(preloaded: { programs?: Program[] } = {}): Promise<SearchItem[]> {
   const [programs, projects, events, faculty, facilities, gallery, announcements] = await Promise.all([
-    getAllPrograms(),
+    preloaded.programs ?? getAllPrograms(),
     getAllProjects(),
     getAllEvents(),
     getAllTeamMembers(),

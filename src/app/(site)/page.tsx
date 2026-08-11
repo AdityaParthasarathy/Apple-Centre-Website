@@ -7,6 +7,7 @@ import { EventsSection } from '@/components/sections/events'
 import { GallerySection } from '@/components/sections/gallery'
 import { FacultySection } from '@/components/sections/faculty'
 import { AnnouncementsSection } from '@/components/sections/announcements'
+import { CtaBand } from '@/components/sections/cta-band'
 import { OpeningReveal } from '@/components/patterns/opening-reveal'
 
 // Announcements are faculty-managed (Google Sheet, not build-time content),
@@ -32,6 +33,7 @@ export default function HomePage() {
       <EventsSection />
       <GallerySection />
       <FacultySection />
+      <CtaBand />
     </>
   )
 }
