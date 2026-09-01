@@ -22,7 +22,11 @@ const MARQUEE_IMAGES = [...PHOTOS, ...PHOTOS, ...PHOTOS, ...PHOTOS]
 
 export function PhotoWallSection() {
   return (
-    <section className="relative mx-auto my-10 flex h-screen w-full max-w-7xl flex-col items-center justify-center overflow-hidden rounded-3xl">
+    // my-10 (from the original demo) left a gap above and below where this
+    // sits between FacultySection and CtaBand — with no background of its
+    // own, that gap showed the sitewide wave-field bleeding through as a
+    // visible seam. Flush top/bottom like every other section on this page.
+    <section className="relative mx-auto flex h-screen w-full max-w-7xl flex-col items-center justify-center overflow-hidden rounded-3xl">
       <h2 className="relative z-20 mx-auto max-w-4xl text-center text-2xl font-bold text-balance text-white md:text-4xl lg:text-6xl">
         Built here, by students who started{' '}
         <span className="relative z-20 inline-block rounded-xl bg-accent/40 px-4 py-1 text-white underline decoration-accent decoration-[6px] underline-offset-[16px] backdrop-blur-sm">

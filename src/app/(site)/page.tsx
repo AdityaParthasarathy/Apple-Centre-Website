@@ -50,6 +50,17 @@ export default async function HomePage({
   if (isEmbed) {
     return (
       <>
+        {/* SiteHeader/FloatingDock/SiteFooter live in (site)/layout.tsx,
+            which wraps this route unconditionally — layouts don't receive
+            searchParams, so this page can't just skip rendering them from
+            here. This marker lets globals.css hide them instead (see the
+            body:has() rule there) rather than duplicating "Apple Centre"
+            header/dock on top of the real page's own when an iMac window
+            is fully open — which is exactly the bug this fixes: the iMac's
+            own browser-chrome (traffic lights) was invisible underneath
+            the real header, and the embedded page's header/dock rendered
+            a second time right where the real ones already were. */}
+        <div id="embed-chrome-off" hidden />
         {embedSection === 'about' && <AboutSection />}
         {embedSection === 'facilities' && <LabsFacilitiesSection />}
         {embedSection === 'projects' && <ProjectsSection />}

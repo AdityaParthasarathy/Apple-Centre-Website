@@ -420,6 +420,22 @@
   }
 }
 
+/* Embedded pages (?embed=1&section=<id> — see page.tsx) render the real
+   SiteHeader/FloatingDock/SiteFooter too, since those live in the shared
+   layout and layouts can't see searchParams to skip them. Left alone, an
+   open iMac window showed those a second time stacked right on top of the
+   real page's own — and hid the iMac's own browser-chrome traffic lights
+   underneath the real header in the process. page.tsx drops an
+   #embed-chrome-off marker into the embedded tree; this rule uses :has()
+   to reach up to the shared ancestor and hide the real chrome for exactly
+   that render, leaving only the section content and the iMac's own
+   browser-chrome visible. */
+body:has(#embed-chrome-off) header,
+body:has(#embed-chrome-off) nav,
+body:has(#embed-chrome-off) footer {
+  display: none;
+}
+
 /* iMac scroll windows — three in sequence (see imac-scroll-windows.tsx),
    each its own tall runway with a sticky 100vh stage. --imac-color is set
    inline per window (About/Labs & Facilities/Student Projects) and drives

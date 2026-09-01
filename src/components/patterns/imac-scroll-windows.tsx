@@ -41,15 +41,15 @@ function IMacScrollWindow({
   })
   const lenis = useLenis()
 
-  // Browsers don't reliably chain a wheel gesture from an exhausted iframe
-  // back up to the parent document the way they do for a nested <div>, so
-  // without this, hitting the bottom of the embedded section just dead-ends
-  // — the outer page's own scrollYProgress never advances again. Once the
-  // iframe (same-origin, so this is allowed) is scrolled all the way to a
-  // boundary in the gesture's direction, this hands the same wheel delta to
-  // this page's own Lenis instance instead — the same API floating-dock.tsx
-  // already uses for its anchor links — continuing the shell-shrink/
-  // next-window motion exactly like a real user scroll would.
+  // Browsers don't reliably chain a wheel/touch gesture from an exhausted
+  // iframe back up to the parent document the way they do for a nested
+  // <div>, so without this, hitting the bottom of the embedded section
+  // just dead-ends — the outer page's own scrollYProgress never advances
+  // again. Once the iframe (same-origin, so this is allowed) is scrolled
+  // all the way to a boundary in the gesture's direction, this hands the
+  // same delta to this page's own Lenis instance instead — the same API
+  // floating-dock.tsx already uses for its anchor links — continuing the
+  // shell-shrink/next-window motion exactly like a real user scroll would.
   //
   // (An earlier version tried re-dispatching a synthetic WheelEvent on
   // `window` for Lenis's own listener to pick up — that never actually
@@ -64,18 +64,43 @@ function IMacScrollWindow({
     const attach = () => {
       const win = iframe.contentWindow
       if (!win) return
-      const onWheel = (e: WheelEvent) => {
+
+      const atBoundary = (delta: number) => {
         const doc = win.document.documentElement
         const maxScroll = doc.scrollHeight - win.innerHeight
-        const atBottom = win.scrollY >= maxScroll - 2
-        const atTop = win.scrollY <= 2
-        if ((e.deltaY > 0 && atBottom) || (e.deltaY < 0 && atTop)) {
-          e.preventDefault()
-          lenis.scrollTo(lenis.animatedScroll + e.deltaY, { immediate: true })
-        }
+        return (delta > 0 && win.scrollY >= maxScroll - 2) || (delta < 0 && win.scrollY <= 2)
       }
+
+      const onWheel = (e: WheelEvent) => {
+        if (!atBoundary(e.deltaY)) return
+        e.preventDefault()
+        lenis.scrollTo(lenis.animatedScroll + e.deltaY, { immediate: true })
+      }
+
+      // Touch never fires 'wheel' — without its own boundary check, a
+      // finger swipe past the end of an open window's content had nowhere
+      // to go, since the desktop-only fix above doesn't apply to it.
+      let touchY = 0
+      const onTouchStart = (e: TouchEvent) => {
+        touchY = e.touches[0].clientY
+      }
+      const onTouchMove = (e: TouchEvent) => {
+        const currentY = e.touches[0].clientY
+        const delta = touchY - currentY // finger moving up = scrolling down
+        touchY = currentY
+        if (!atBoundary(delta)) return
+        e.preventDefault()
+        lenis.scrollTo(lenis.animatedScroll + delta, { immediate: true })
+      }
+
       win.addEventListener('wheel', onWheel, { passive: false })
-      detach = () => win.removeEventListener('wheel', onWheel)
+      win.addEventListener('touchstart', onTouchStart, { passive: true })
+      win.addEventListener('touchmove', onTouchMove, { passive: false })
+      detach = () => {
+        win.removeEventListener('wheel', onWheel)
+        win.removeEventListener('touchstart', onTouchStart)
+        win.removeEventListener('touchmove', onTouchMove)
+      }
     }
 
     iframe.addEventListener('load', attach)
@@ -88,8 +113,26 @@ function IMacScrollWindow({
   // Symmetric: grow 0 → 0.22, hold full-screen through 0.68, shrink back by
   // 0.9 — a mirror of the same keyframes on the way in and out, so opening
   // and closing feel like the same motion played forwards and backwards.
+  //
+  // The closed width is always 34vw — height is capped at 34vw/1.4 (never
+  // the naive 34vh) so the shell can't grow taller than it is wide. Plain
+  // 34vh read fine on a landscape desktop, but on anything narrower than
+  // it is tall (a laptop at moderate width, a phone) it produced a
+  // portrait "iMac" — no real iMac is portrait, so that broke the
+  // silhouette the whole effect depends on reading as. The full-screen
+  // state stays exactly 100vw/100vh — that one's meant to fill the
+  // viewport, not preserve any particular shape. Every keyframe keeps the
+  // same `min(Xvh, Yvw)` shape (500vw at the open keyframes just never
+  // binds, for any real viewport) because framer-motion interpolates a
+  // complex CSS value by lerping the numbers inside a shared template —
+  // keyframes with different templates (some wrapped in min(), some not)
+  // don't interpolate cleanly.
   const shellWidth = useTransform(scrollYProgress, [0, 0.22, 0.68, 0.9], ['34vw', '100vw', '100vw', '34vw'])
-  const shellHeight = useTransform(scrollYProgress, [0, 0.22, 0.68, 0.9], ['34vh', '100vh', '100vh', '34vh'])
+  const shellHeight = useTransform(
+    scrollYProgress,
+    [0, 0.22, 0.68, 0.9],
+    ['min(34vh, 24.29vw)', 'min(100vh, 500vw)', 'min(100vh, 500vw)', 'min(34vh, 24.29vw)']
+  )
   const shellRadius = useTransform(scrollYProgress, [0, 0.22, 0.68, 0.9], [18, 0, 0, 18])
   const bezelPad = useTransform(scrollYProgress, [0, 0.22, 0.68, 0.9], ['6px', '0px', '0px', '6px'])
   const chinHeight = useTransform(scrollYProgress, [0, 0.22, 0.68, 0.9], ['16px', '0px', '0px', '16px'])

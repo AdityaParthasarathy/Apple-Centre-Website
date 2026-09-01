@@ -51,7 +51,7 @@ export function CentreSpaceSection() {
             >
               <CustomCursorTarget
                 className="hover:opacity-100"
-                style={{ width: '100%', height: '100%' }}
+                style={{ position: 'relative', width: '100%', height: '100%' }}
               >
                 <Image
                   src={item.image}

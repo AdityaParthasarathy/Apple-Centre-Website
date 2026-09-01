@@ -36,55 +36,73 @@ export function EventsSectionClient({ events }: { events: Event[] }) {
           </motion.p>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_1.2fr] items-start">
-          <EventsCalendar events={calendarEvents} className="mx-auto lg:mx-0" />
-
-          <div className="space-y-4">
-            {events.map((event, idx) => (
-              <motion.div
-                key={event.id}
-                initial={{ opacity: 0, x: 20 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.5, delay: idx * 0.08 }}
-                viewport={{ once: true }}
-              >
-                <Link href={`/events/${event.id}`}>
-                  <Card className="flex gap-4 p-4">
-                    <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg">
-                      <Image
-                        src={event.image}
-                        alt=""
-                        fill
-                        className="object-cover"
-                        sizes="64px"
-                        unoptimized={isExternalImage(event.image)}
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="mb-1 flex items-start justify-between gap-2">
-                        <h3 className="font-semibold text-foreground">{event.title}</h3>
-                        <Badge variant="secondary" className="text-xs capitalize shrink-0">
-                          {event.category}
-                        </Badge>
-                      </div>
-                      <p className="mb-2 line-clamp-1 text-sm text-muted-foreground">{event.description}</p>
-                      <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1.5">
-                          <Calendar className="h-3.5 w-3.5" />
-                          {event.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} &middot; {event.time}
-                        </span>
-                        <span className="flex items-center gap-1.5">
-                          <MapPin className="h-3.5 w-3.5" />
-                          {event.location}
-                        </span>
-                      </div>
-                    </div>
-                  </Card>
-                </Link>
-              </motion.div>
-            ))}
+        {events.length === 0 ? (
+          // The static seed list is intentionally empty (see content/events.ts)
+          // — every real event comes from the faculty sheet, so this is a real
+          // state, not a loading placeholder. Without it, the list column next
+          // to the calendar just rendered nothing, leaving a lopsided gap of
+          // whitespace half the section wide.
+          <div className="flex flex-col items-center gap-6">
+            <EventsCalendar events={calendarEvents} />
+            <p className="text-sm text-muted-foreground">
+              Nothing on the calendar right now — check back soon, or{' '}
+              <Link href="/apply" className="text-accent hover:underline">
+                apply
+              </Link>{' '}
+              to hear about the next one first.
+            </p>
           </div>
-        </div>
+        ) : (
+          <div className="grid gap-8 lg:grid-cols-[1fr_1.2fr] items-start">
+            <EventsCalendar events={calendarEvents} className="mx-auto lg:mx-0" />
+
+            <div className="space-y-4">
+              {events.map((event, idx) => (
+                <motion.div
+                  key={event.id}
+                  initial={{ opacity: 0, x: 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  transition={{ duration: 0.5, delay: idx * 0.08 }}
+                  viewport={{ once: true }}
+                >
+                  <Link href={`/events/${event.id}`}>
+                    <Card className="flex gap-4 p-4">
+                      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg">
+                        <Image
+                          src={event.image}
+                          alt=""
+                          fill
+                          className="object-cover"
+                          sizes="64px"
+                          unoptimized={isExternalImage(event.image)}
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1 flex items-start justify-between gap-2">
+                          <h3 className="font-semibold text-foreground">{event.title}</h3>
+                          <Badge variant="secondary" className="text-xs capitalize shrink-0">
+                            {event.category}
+                          </Badge>
+                        </div>
+                        <p className="mb-2 line-clamp-1 text-sm text-muted-foreground">{event.description}</p>
+                        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                          <span className="flex items-center gap-1.5">
+                            <Calendar className="h-3.5 w-3.5" />
+                            {event.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} &middot; {event.time}
+                          </span>
+                          <span className="flex items-center gap-1.5">
+                            <MapPin className="h-3.5 w-3.5" />
+                            {event.location}
+                          </span>
+                        </div>
+                      </div>
+                    </Card>
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        )}
       </Container>
     </section>
   )
