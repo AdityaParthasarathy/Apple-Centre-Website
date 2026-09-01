@@ -3,6 +3,7 @@ import { SiteFooter } from "@/components/footer/site-footer";
 import { FloatingDock, type DockItem } from "@/components/patterns/floating-dock";
 import { SmoothScroll } from "@/components/patterns/smooth-scroll";
 import { SkipLink } from "@/components/patterns/skip-link";
+import { WaveField } from "@/components/patterns/wave-field";
 import { buildSearchIndex } from "@/lib/search-index";
 import { getAllPrograms } from "@/lib/merge-programs";
 import { Home, GraduationCap, FolderKanban, Calendar, Images, Users } from "lucide-react";
@@ -32,6 +33,9 @@ export default async function SiteLayout({
 
   return (
     <SmoothScroll>
+      <div className="fixed inset-0 -z-10 overflow-hidden">
+        <WaveField />
+      </div>
       <SkipLink />
       <FloatingDock items={dockItems} />
       <div className="isolate flex flex-col min-h-screen">

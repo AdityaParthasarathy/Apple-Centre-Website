@@ -23,6 +23,7 @@ interface Application {
   phone: string
   year: string
   skills: string
+  techComfort: string
 }
 
 // Flat project1.../project2.../project3... fields, matching the sheet
@@ -40,6 +41,7 @@ function parseApplication(formData: FormData): Application | null {
     phone: get('phone'),
     year: get('year'),
     skills: get('skills'),
+    techComfort: get('techComfort'),
   }
 
   const hasRequiredFields = application.name && application.email && application.year
@@ -69,6 +71,26 @@ function parseProjects(formData: FormData): ProjectInput[] {
     })
   }
   return projects
+}
+
+/** Resume is optional — parsed the same base64-in-a-hidden-field way the
+ *  project screenshots already are (see ScreenshotState in apply-form.tsx),
+ *  uploaded through the same Apps Script action. */
+async function uploadResume(formData: FormData): Promise<string> {
+  const base64 = formData.get('resumeBase64')?.toString() ?? ''
+  if (!base64) return ''
+  const mimeType = formData.get('resumeMimeType')?.toString() || 'application/pdf'
+  try {
+    const result = await callAppsScript<{ url: string }>('uploadImage', {
+      base64,
+      mimeType,
+      filename: 'application-resume.pdf',
+    })
+    return result.url
+  } catch (error) {
+    console.error('Failed to upload resume:', error)
+    return ''
+  }
 }
 
 function validateProjects(projects: ProjectInput[]): string | null {
@@ -133,7 +155,12 @@ function projectsEmailHtml(projects: ProjectInput[], projectFields: ProjectField
     .join('')
 }
 
-async function sendNotificationEmail(application: Application, projects: ProjectInput[], projectFields: ProjectFields) {
+async function sendNotificationEmail(
+  application: Application,
+  resumeUrl: string,
+  projects: ProjectInput[],
+  projectFields: ProjectFields
+) {
   const { NOTIFY_EMAIL_TO } = process.env
   if (!NOTIFY_EMAIL_TO) {
     throw new Error('Email notification is not configured (missing NOTIFY_EMAIL_TO env var).')
@@ -150,13 +177,15 @@ async function sendNotificationEmail(application: Application, projects: Project
       <p><strong>Phone:</strong> ${escapeHtml(application.phone) || '&mdash;'}</p>
       <p><strong>Year:</strong> ${escapeHtml(application.year)}</p>
       <p><strong>Skills:</strong> ${escapeHtml(application.skills) || '&mdash;'}</p>
+      <p><strong>Tech comfort:</strong> ${escapeHtml(application.techComfort) || '&mdash;'}</p>
+      <p><strong>Resume:</strong> ${resumeUrl ? `<a href="${escapeHtml(resumeUrl)}">${escapeHtml(resumeUrl)}</a>` : '&mdash;'}</p>
       ${projectsEmailHtml(projects, projectFields)}
     `,
   })
 }
 
-async function logToSheet(application: Application, projectFields: ProjectFields) {
-  await callAppsScript('logApplication', { ...application, ...projectFields })
+async function logToSheet(application: Application, resumeUrl: string, projectFields: ProjectFields) {
+  await callAppsScript('logApplication', { ...application, resumeUrl, ...projectFields })
 }
 
 export async function POST(request: Request) {
@@ -173,11 +202,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: projectError }, { status: 400 })
   }
 
-  const projectFields = await uploadScreenshotsAndFlatten(projects)
+  const [projectFields, resumeUrl] = await Promise.all([
+    uploadScreenshotsAndFlatten(projects),
+    uploadResume(formData),
+  ])
 
   const [emailResult, sheetResult] = await Promise.allSettled([
-    sendNotificationEmail(application, projects, projectFields),
-    logToSheet(application, projectFields),
+    sendNotificationEmail(application, resumeUrl, projects, projectFields),
+    logToSheet(application, resumeUrl, projectFields),
   ])
 
   if (emailResult.status === 'rejected') {

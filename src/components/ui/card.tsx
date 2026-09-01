@@ -10,11 +10,16 @@ export const Card = React.forwardRef<HTMLDivElement, CardProps>(
     <Component
       ref={ref}
       className={cn(
-        // Elevation declared once (shadow), not doubled up with a border
-        // underneath it — a 1px border plus a wide soft shadow is the
-        // "ghost card" look. Resting shadow-sm gives real depth before any
-        // interaction; hover deepens it and lifts the card slightly.
-        "rounded-lg bg-card text-card-foreground shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-lg",
+        // Liquid Glass: translucent enough that the wave field behind it
+        // (see wave-field.tsx) reads through as a faint tint, blurred
+        // enough that it stays frosted rather than showing a legible smear
+        // of blob edges. bg-card/70 is the tuned number — high enough that
+        // body text keeps contrast, low enough the tint is actually
+        // visible. The white border is the "glass edge catching light"
+        // cue; the existing header/dock/dropdown glass all use the neutral
+        // border-border instead, which is correct for chrome sitting over
+        // arbitrary content but reads flat here.
+        "rounded-lg border border-white/40 bg-card/70 text-card-foreground shadow-sm backdrop-blur-lg transition-all duration-300 hover:-translate-y-1 hover:bg-card/80 hover:shadow-lg",
         className
       )}
       {...props}

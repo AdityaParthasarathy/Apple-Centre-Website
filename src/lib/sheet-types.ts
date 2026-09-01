@@ -52,6 +52,8 @@ export interface SheetApplication {
   phone: string
   year: string
   skills: string
+  techComfort?: string
+  resumeUrl?: string
   project1Description?: string
   project1SourceLink?: string
   project1LiveLink?: string

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { MotionButton } from '@/components/patterns/motion-link'
+import { StatefulButton } from '@/components/ui/stateful-button'
 import { inputClass } from '@/lib/utils'
 
 export function LoginForm() {
@@ -76,14 +76,15 @@ export function LoginForm() {
         </p>
       )}
 
-      <MotionButton
+      <StatefulButton
         type="submit"
         size="lg"
+        status={submitting ? 'loading' : 'idle'}
         disabled={submitting}
-        className="w-full disabled:pointer-events-none disabled:opacity-80"
+        className="w-full"
       >
-        {submitting ? 'Signing in…' : 'Sign in'}
-      </MotionButton>
+        Sign in
+      </StatefulButton>
     </form>
   )
 }

@@ -5,17 +5,27 @@ import Image from 'next/image'
 import { motion } from 'motion/react'
 import { CheckCircle2, Plus, Upload, X } from 'lucide-react'
 import { TextEffect } from '@/components/patterns/text-effect'
-import { TextMorph } from '@/components/core/text-morph'
-import { buttonVariants } from '@/components/ui/button'
+import { StatefulButton } from '@/components/ui/stateful-button'
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/components/ui/select'
 import { TagInput } from '@/components/ui/tag-input'
+import { RadioCardGroup, type RadioCardOption } from '@/components/ui/radio-card'
 import { compressImage } from '@/lib/image-compress'
-import { cn } from '@/lib/utils'
+import { fileToBase64 } from '@/lib/file-to-base64'
 
 const inputClass =
   'w-full rounded-lg border border-border bg-input px-3.5 py-2.5 text-sm outline-none transition focus:border-ring focus:ring-1 focus:ring-ring/50'
 
 const yearOptions = ['1st Year', '2nd Year', '3rd Year', '4th Year', 'Faculty / Staff', 'Other']
+
+// A learning centre spanning Swift/SwiftUI/ARKit/etc., not a single
+// framework interview — so this asks about comfort with *their own* stack
+// rather than rating React specifically, and the options read as an honest
+// self-check rather than a pass/fail skill test.
+const TECH_COMFORT_OPTIONS: RadioCardOption[] = [
+  { value: 'comfortable', title: 'Comfortable', description: 'I can build things solo.' },
+  { value: 'guided', title: 'Getting there', description: 'I can follow along, but need some guidance.' },
+  { value: 'new', title: 'New to this', description: "I'm just starting out, and excited to learn." },
+]
 
 const MAX_PROJECTS = 3
 
@@ -166,11 +176,36 @@ function ProjectBlock({
   )
 }
 
+interface ResumeState {
+  base64: string
+  mimeType: string
+  filename: string
+}
+
 export function ApplyForm() {
   const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [projectCount, setProjectCount] = useState(0)
+  const [resume, setResume] = useState<ResumeState | null>(null)
+  const [resumeUploading, setResumeUploading] = useState(false)
+  const [resumeError, setResumeError] = useState<string | null>(null)
+  const resumeInputRef = useRef<HTMLInputElement>(null)
+
+  const handleResumeChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setResumeError(null)
+    setResumeUploading(true)
+    try {
+      const { base64, mimeType } = await fileToBase64(file)
+      setResume({ base64, mimeType, filename: file.name })
+    } catch (err) {
+      setResumeError(err instanceof Error ? err.message : 'Could not process that file.')
+    } finally {
+      setResumeUploading(false)
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -271,6 +306,53 @@ export function ApplyForm() {
         />
       </div>
 
+      <div>
+        <span className="mb-1.5 block text-sm font-medium text-foreground">
+          How comfortable are you with your primary tech stack?
+        </span>
+        <RadioCardGroup name="techComfort" options={TECH_COMFORT_OPTIONS} />
+      </div>
+
+      <div>
+        <span className="mb-1.5 block text-sm font-medium text-foreground">
+          Resume <span className="font-normal text-muted-foreground">(optional)</span>
+        </span>
+        <div className="flex items-center gap-3">
+          <motion.button
+            type="button"
+            onClick={() => resumeInputRef.current?.click()}
+            disabled={resumeUploading}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+            className="flex items-center gap-2 rounded-lg border border-dashed border-border px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:border-ring hover:text-foreground disabled:pointer-events-none disabled:opacity-70"
+          >
+            <Upload className="h-4 w-4" />
+            {resumeUploading ? 'Processing…' : resume ? 'Change file' : 'Choose file'}
+          </motion.button>
+          {resume && !resumeUploading && (
+            <span className="flex items-center gap-1.5 text-sm text-foreground">
+              <CheckCircle2 className="h-4 w-4 text-accent" />
+              {resume.filename}
+            </span>
+          )}
+        </div>
+        <input
+          ref={resumeInputRef}
+          type="file"
+          accept="application/pdf"
+          onChange={handleResumeChange}
+          className="hidden"
+        />
+        {resumeError && (
+          <p className="mt-1.5 text-xs text-destructive" role="alert">
+            {resumeError}
+          </p>
+        )}
+        <input type="hidden" name="resumeBase64" value={resume?.base64 ?? ''} />
+        <input type="hidden" name="resumeMimeType" value={resume?.mimeType ?? ''} />
+      </div>
+
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <label className="block text-sm font-medium text-foreground">
@@ -303,16 +385,15 @@ export function ApplyForm() {
         </p>
       )}
 
-      <button
+      <StatefulButton
         type="submit"
+        size="lg"
+        status={submitting ? 'loading' : 'idle'}
         disabled={submitting}
-        className={cn(
-          buttonVariants({ size: 'lg' }),
-          'w-full sm:w-auto disabled:pointer-events-none disabled:opacity-80'
-        )}
+        className="w-full sm:w-auto"
       >
-        <TextMorph>{submitting ? 'Submitting...' : 'Submit Application'}</TextMorph>
-      </button>
+        Submit Application
+      </StatefulButton>
     </form>
   )
 }

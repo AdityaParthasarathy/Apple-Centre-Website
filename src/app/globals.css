@@ -52,6 +52,16 @@
   --input: #f4f4f5;
   --ring: #5b4ef9;
 
+  /* Wave field — Big Sur's own hue path (red/orange/magenta/blue), kept
+     pastel via high lightness but with enough chroma to actually read as
+     distinct colors rather than washing into one flat tint (the first pass
+     was too faint to see at all). The cool stop is tuned to --accent's own
+     hue, anchoring the wave to this site's identity. */
+  --wave-warm: oklch(83% 0.13 25);
+  --wave-amber: oklch(85% 0.13 55);
+  --wave-magenta: oklch(82% 0.12 340);
+  --wave-cool: oklch(81% 0.12 275);
+
   /* Spacing tokens (4px base) */
   --space-0-5: 0.125rem;
   --space-1: 0.25rem;
@@ -163,5 +173,464 @@
   }
   h6 {
     @apply text-lg font-semibold;
+  }
+}
+
+/* Ambient wave background — a slow, calm drift, deliberately not the
+   warped/noisy motion of an earlier (rejected) shader attempt. Each blob's
+   shape is static; only its position drifts. See wave-field.tsx. */
+.wave-field {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.wave-blob {
+  position: absolute;
+  width: 38vmax;
+  height: 38vmax;
+  background: radial-gradient(circle at 50% 50%, var(--wave-color) 0%, transparent 72%);
+  filter: blur(60px);
+  opacity: 0.8;
+}
+
+/* Spread toward the four actual corners, well past the viewport edge, so
+   they overlap only at the middle rather than all four stacking on top of
+   each other — the first pass washed into one flat tint because every
+   blob's visible mass sat in the same central band. */
+.wave-blob--a {
+  --wave-color: var(--wave-warm);
+  top: -14%;
+  left: -14%;
+  border-radius: 42% 58% 65% 35% / 45% 40% 60% 55%;
+  animation: wave-drift-a 26s ease-in-out infinite;
+}
+.wave-blob--b {
+  --wave-color: var(--wave-amber);
+  top: -16%;
+  right: -16%;
+  border-radius: 9999px;
+  filter: blur(66px);
+  animation: wave-drift-b 31s ease-in-out infinite;
+  animation-delay: -8s;
+}
+.wave-blob--c {
+  --wave-color: var(--wave-magenta);
+  bottom: -18%;
+  left: -8%;
+  border-radius: 55% 45% 40% 60% / 60% 55% 45% 40%;
+  opacity: 0.75;
+  animation: wave-drift-c 34s ease-in-out infinite;
+  animation-delay: -19s;
+}
+.wave-blob--d {
+  --wave-color: var(--wave-cool);
+  bottom: -16%;
+  right: -14%;
+  border-radius: 9999px;
+  animation: wave-drift-d 23s ease-in-out infinite;
+  animation-delay: -4s;
+}
+
+/* Real, visible movement (translate + scale + a touch of rotate) rather
+   than the earlier ~3% nudge, which was too small to perceive over a
+   60-second span. Still just position/scale/rotate on a static shape —
+   nothing warps or distorts, which is what kept the earlier shader calm
+   by comparison. */
+@keyframes wave-drift-a {
+  0%, 100% { transform: translate(-8%, -10%) scale(1) rotate(0deg); }
+  50% { transform: translate(16%, 14%) scale(1.18) rotate(8deg); }
+}
+@keyframes wave-drift-b {
+  0%, 100% { transform: translate(10%, -12%) scale(1.12) rotate(0deg); }
+  50% { transform: translate(-14%, 12%) scale(0.94) rotate(-10deg); }
+}
+@keyframes wave-drift-c {
+  0%, 100% { transform: translate(-12%, 10%) scale(1) rotate(0deg); }
+  50% { transform: translate(14%, -14%) scale(1.15) rotate(9deg); }
+}
+@keyframes wave-drift-d {
+  0%, 100% { transform: translate(12%, 8%) scale(1) rotate(0deg); }
+  50% { transform: translate(-16%, -10%) scale(1.16) rotate(-8deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wave-blob {
+    animation: none;
+    transform: translate(-1%, 1%) scale(1.02);
+  }
+}
+
+/* Glass orbs — refract the wave gradient behind them (Liquid Glass's real
+   trick: blur + contrast-boost the backdrop, not an image of glass).
+   Contrast is a moderate 170%, not the 400-500% a literal "glass sphere"
+   reference would use — that reads as a harsh, warped distortion at full
+   strength, and calm was the whole point after the last rejected attempt.
+   Positioned away from Hero's centered text so they never sit under it. */
+.glass-orb-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.glass-orb {
+  position: absolute;
+  border-radius: 9999px;
+  backdrop-filter: blur(16px) contrast(170%) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.15),
+    inset 0 1px 12px rgba(255, 255, 255, 0.25);
+}
+
+.glass-orb--1 {
+  top: 14%;
+  left: 8%;
+  width: 20vmin;
+  height: 20vmin;
+  animation: orb-drift-1 34s ease-in-out infinite;
+}
+.glass-orb--2 {
+  top: 62%;
+  right: 10%;
+  width: 15vmin;
+  height: 15vmin;
+  animation: orb-drift-2 28s ease-in-out infinite;
+  animation-delay: -9s;
+}
+.glass-orb--3 {
+  bottom: 10%;
+  left: 22%;
+  width: 11vmin;
+  height: 11vmin;
+  animation: orb-drift-3 40s ease-in-out infinite;
+  animation-delay: -20s;
+}
+
+@keyframes orb-drift-1 {
+  0%, 100% { transform: translate(0%, 0%) scale(1); }
+  50% { transform: translate(8%, 10%) scale(1.1); }
+}
+@keyframes orb-drift-2 {
+  0%, 100% { transform: translate(0%, 0%) scale(1.05); }
+  50% { transform: translate(-10%, -8%) scale(0.95); }
+}
+@keyframes orb-drift-3 {
+  0%, 100% { transform: translate(0%, 0%) scale(1); }
+  50% { transform: translate(9%, -9%) scale(1.08); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-orb {
+    animation: none;
+  }
+}
+
+/* iMac marquee field — Hero's background: three lanes of the flat-SVG iMac
+   mockups (see imac-icon.tsx) drifting past at different speeds/directions,
+   dimmed and softly blurred so they read as ambient texture rather than
+   competing with the headline sitting above them. */
+.imac-marquee-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+}
+
+.imac-lane {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  overflow: hidden;
+  opacity: 0.4;
+  filter: blur(0.5px);
+}
+
+.imac-lane--1 {
+  top: 2%;
+}
+.imac-lane--2 {
+  top: 40%;
+}
+.imac-lane--3 {
+  top: 76%;
+}
+
+.imac-lane-track {
+  display: flex;
+  width: max-content;
+  gap: 4vw;
+}
+
+.imac-lane--1 .imac-lane-track {
+  animation: imac-marquee-ltr 70s linear infinite;
+}
+.imac-lane--2 .imac-lane-track {
+  animation: imac-marquee-rtl 85s linear infinite;
+}
+.imac-lane--3 .imac-lane-track {
+  animation: imac-marquee-ltr 95s linear infinite;
+}
+
+.imac-lane-item {
+  flex: none;
+  width: 12vmax;
+  min-width: 140px;
+  max-width: 220px;
+  animation: imac-float 9s ease-in-out infinite;
+}
+
+.imac-lane-item svg {
+  width: 100%;
+  height: auto;
+}
+
+@keyframes imac-marquee-ltr {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes imac-marquee-rtl {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes imac-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-14px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .imac-lane-track,
+  .imac-lane-item {
+    animation: none;
+  }
+}
+
+/* iMac scroll windows — three in sequence (see imac-scroll-windows.tsx),
+   each its own tall runway with a sticky 100vh stage. --imac-color is set
+   inline per window (About/Labs & Facilities/Student Projects) and drives
+   the stand, chin, and wallpaper tint, so the same CSS serves all three. */
+.imac-reveal {
+  position: relative;
+  z-index: 1;
+  height: 260vh;
+}
+
+.imac-reveal-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Transparent, not var(--background) — the marquee layer behind (see
+     .imac-scroll-marquee-layer and IMacScrollWindows) needs to show
+     through the empty space around each small/closing shell. The shell
+     and screen underneath still carry their own opaque backgrounds, so
+     legibility of the actual iMac and its content is unaffected. */
+  background: transparent;
+}
+
+/* A sticky layer that sits *behind* the three iMac windows that follow it
+   in the DOM, for the runway's full combined height, then scrolls away
+   for good once that's over — see the comment in imac-scroll-windows.tsx
+   for why this has to be sticky rather than fixed. The negative margin is
+   what keeps it from pushing the actual windows down by its own height:
+   it still occupies no space in flow, but stays sticky-positioned for as
+   long as its (zero-height) box hasn't fully scrolled past. */
+.imac-scroll-marquee-layer {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  margin-bottom: -100vh;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* The stand — hangs from the shell's bottom edge (top: 50% + half the
+   shell's height places it exactly there) and fades out almost immediately
+   on the way in, then fades back in as the shell shrinks back down on the
+   way out (see standOpacity in the component). */
+.imac-stand {
+  position: absolute;
+  top: calc(50% + 17vh);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.imac-stand-neck {
+  width: 16px;
+  height: 18px;
+  background: var(--imac-color);
+}
+.imac-stand-foot {
+  width: 96px;
+  height: 9px;
+  border-radius: 9999px;
+  background: var(--imac-color);
+  margin-top: -1px;
+}
+
+/* The shell IS the iMac: a flex column whose padding (bezel), radius, and
+   chin height all animate toward zero as its own width/height grow toward
+   100vw/100vh, then back again — the screen below is a real flex child, so
+   it is always exactly what's left after the bezel/chin, never a
+   separately-positioned guess. */
+.imac-shell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: #f5f5f7;
+  box-shadow: 0 40px 80px -20px rgba(11, 11, 15, 0.25);
+}
+
+.imac-shell-notch {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  width: 5px;
+  height: 5px;
+  border-radius: 9999px;
+  background: rgba(11, 11, 15, 0.35);
+  transform: translateX(-50%);
+  z-index: 2;
+}
+
+.imac-shell-screen {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--background);
+  /* Lets the browser-chrome strip below size itself in cqw/cqh, so it stays
+     proportional across the shell's own animated width/height. */
+  container-type: size;
+}
+
+.imac-screen-wallpaper {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    color-mix(in oklch, var(--imac-color), white 35%),
+    color-mix(in oklch, var(--imac-color), white 55%)
+  );
+}
+
+.imac-shell-chin {
+  flex: none;
+  width: 100%;
+  background: var(--imac-color);
+}
+
+.imac-reveal-content {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Browser-window chrome wrapping the live iframe below — this is what
+   makes it read as "a website, open on a Mac" rather than a bare embed.
+   Sized with container query units so it stays proportional whether the
+   shell is small or full-viewport. */
+.imac-browser-chrome {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 3cqw;
+  padding: 1.4cqh 3cqw;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+}
+.imac-traffic-lights {
+  display: flex;
+  gap: 1.2cqw;
+}
+.imac-traffic-light {
+  width: clamp(5px, 1.7cqw, 12px);
+  height: clamp(5px, 1.7cqw, 12px);
+  border-radius: 9999px;
+}
+.imac-traffic-light--red {
+  background: #ff5f57;
+}
+.imac-traffic-light--yellow {
+  background: #febc2e;
+}
+.imac-traffic-light--green {
+  background: #28c840;
+}
+.imac-address-pill {
+  flex: 1;
+  max-width: 40cqw;
+  margin: 0 auto;
+  padding: 0.6cqh 3cqw;
+  border-radius: 9999px;
+  background: var(--secondary);
+  color: var(--muted-foreground);
+  font-size: clamp(0.4rem, 1.3cqw, 0.75rem);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.imac-reveal-iframe-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+}
+.imac-reveal-iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  /* Off while small/closed (so scrolling past a not-yet-open iMac can't get
+     captured by it); the component switches this to auto once the iMac is
+     actually open, so the section inside can genuinely be scrolled through
+     — see iframePointerEvents in imac-scroll-windows.tsx. */
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .imac-reveal {
+    height: auto;
+  }
+  .imac-reveal-sticky {
+    position: relative;
+  }
+  .imac-stand {
+    display: none;
+  }
+  .imac-shell {
+    width: 100% !important;
+    height: 80vh !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
+  }
+  .imac-shell-chin,
+  .imac-shell-notch,
+  .imac-screen-wallpaper {
+    display: none;
+  }
+  .imac-reveal-content {
+    opacity: 1 !important;
   }
 }

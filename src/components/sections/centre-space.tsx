@@ -6,6 +6,7 @@ import { motion } from 'motion/react'
 import { Container } from '@/components/ui/container'
 import { SectionHeading } from '@/components/ui/section-heading'
 import { GalleryLightbox } from '@/components/ui/gallery-lightbox'
+import { CustomCursor, CustomCursorTarget } from '@/components/patterns/custom-cursor'
 import { centreSpaceImages } from '@/content/centre-space'
 
 export function CentreSpaceSection() {
@@ -27,7 +28,10 @@ export function CentreSpaceSection() {
           </motion.p>
         </div>
 
-        <div className="grid auto-rows-[160px] grid-cols-2 gap-4 sm:auto-rows-[200px] sm:grid-cols-4 [grid-auto-flow:dense]">
+        <CustomCursor
+          color="var(--accent)"
+          className="grid auto-rows-[160px] grid-cols-2 gap-4 sm:auto-rows-[200px] sm:grid-cols-4 [grid-auto-flow:dense]"
+        >
           {centreSpaceImages.map((item, idx) => (
             <motion.div
               key={item.id}
@@ -41,24 +45,29 @@ export function CentreSpaceSection() {
               tabIndex={0}
               onKeyDown={(e) => e.key === 'Enter' && setActiveIndex(idx)}
               aria-label={`View ${item.title}`}
-              className={`group relative cursor-pointer overflow-hidden rounded-xl ${
+              className={`group relative cursor-none overflow-hidden rounded-xl ${
                 item.featured ? 'col-span-2 row-span-2' : ''
               }`}
             >
-              <Image
-                src={item.image}
-                alt={item.title}
-                fill
-                className="object-cover transition-transform duration-500 group-hover:scale-110"
-                sizes="(max-width: 640px) 50vw, 25vw"
-              />
-              <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-black/0 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                <p className="text-sm font-semibold text-white">{item.title}</p>
-                <p className="line-clamp-2 text-xs text-white/80">{item.description}</p>
-              </div>
+              <CustomCursorTarget
+                className="hover:opacity-100"
+                style={{ width: '100%', height: '100%' }}
+              >
+                <Image
+                  src={item.image}
+                  alt={item.title}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                  sizes="(max-width: 640px) 50vw, 25vw"
+                />
+                <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-black/0 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                  <p className="text-sm font-semibold text-white">{item.title}</p>
+                  <p className="line-clamp-2 text-xs text-white/80">{item.description}</p>
+                </div>
+              </CustomCursorTarget>
             </motion.div>
           ))}
-        </div>
+        </CustomCursor>
       </Container>
 
       <GalleryLightbox images={centreSpaceImages} activeIndex={activeIndex} onIndexChange={setActiveIndex} />

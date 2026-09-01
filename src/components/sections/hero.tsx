@@ -2,13 +2,13 @@
 
 import { useRef } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { AnnouncementBadge } from '@/components/patterns/announcement-badge'
 import { FlipWords } from '@/components/patterns/flip-words'
 import { TextEffect } from '@/components/patterns/text-effect'
 import { Container } from '@/components/ui/container'
 import { buttonVariants } from '@/components/ui/button'
 import { MotionLink } from '@/components/patterns/motion-link'
+import { IMacMarqueeField } from '@/components/patterns/imac-marquee-field'
 import { motion, useScroll, useTransform } from 'motion/react'
 import { ArrowRight } from 'lucide-react'
 
@@ -28,31 +28,21 @@ export function HeroSection() {
   const contentScale = useTransform(scrollYProgress, [0, 1], [1, 0.92])
   const contentY = useTransform(scrollYProgress, [0, 1], [0, -60])
   const indicatorOpacity = useTransform(scrollYProgress, [0, 0.2], [1, 0])
-  // The backdrop photo drifts slightly slower than the page scrolls — a
-  // shallow parallax that reads as depth without ever separating far enough
-  // to reveal empty space beneath it.
-  const imageY = useTransform(scrollYProgress, [0, 1], ['0%', '18%'])
 
   return (
     <section
       ref={sectionRef}
-      className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden py-20 sm:py-32"
+      className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background py-20 sm:py-32"
     >
-      {/* Real photography, not decoration — the Centre's own lab, so the
-          hero opens on the actual place this site is about instead of an
-          empty white screen. A dark scrim (not a blur or a color blob)
-          keeps the white headline legible without hiding the room. */}
-      <motion.div className="absolute inset-0 -z-10" style={{ y: imageY }}>
-        <Image
-          src="/centre-space/lab-wide.jpg"
-          alt=""
-          fill
-          priority
-          className="object-cover"
-          sizes="100vw"
-        />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,11,15,0.88)_0%,rgba(11,11,15,0.82)_45%,rgba(11,11,15,0.94)_100%)]" />
-      </motion.div>
+      {/* bg-background makes Hero opaque, so the sitewide wave field
+          (mounted in (site)/layout.tsx) is fully covered here — Hero gets
+          its own background instead: a dimmed marquee of colorway iMacs
+          (imac-marquee-field.tsx). The scroll-triggered iMac windows
+          (About, Labs & Facilities, Student Projects — each with a real
+          id, so "Learn more" below still lands on the right one via plain
+          hash scrolling) live in IMacScrollWindows right after Hero (see
+          page.tsx) rather than here. */}
+      <IMacMarqueeField />
 
       <motion.div style={{ opacity: contentOpacity, scale: contentScale, y: contentY }}>
         <Container size="lg" className="flex flex-col items-center gap-7 sm:gap-9">
@@ -62,7 +52,7 @@ export function HeroSection() {
             variant="accent"
           />
 
-          <h1 className="text-center text-6xl font-black tracking-tight text-white sm:text-7xl lg:text-8xl">
+          <h1 className="text-center text-6xl font-black tracking-tight text-foreground sm:text-7xl lg:text-8xl">
             <TextEffect
               as="span"
               per="word"
@@ -81,7 +71,7 @@ export function HeroSection() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.6 }}
-            className="max-w-xl text-center text-lg text-white/70 sm:text-xl"
+            className="max-w-xl text-center text-lg text-muted-foreground sm:text-xl"
           >
             The Centre for Apple Technologies at RIT — where students learn to build for the Apple ecosystem, hands-on.
           </motion.p>
@@ -103,7 +93,7 @@ export function HeroSection() {
             </MotionLink>
             <Link
               href="#about"
-              className="inline-flex items-center gap-1 text-base font-medium text-white transition-opacity hover:opacity-70"
+              className="inline-flex items-center gap-1 text-base font-medium text-foreground transition-opacity hover:opacity-70"
             >
               Learn more
               <ArrowRight className="h-4 w-4" />
@@ -119,7 +109,7 @@ export function HeroSection() {
         animate={{ y: [0, 10, 0] }}
         transition={{ duration: 2, repeat: Infinity }}
       >
-        <div className="text-xs text-white/60 sm:text-sm">Scroll to explore</div>
+        <div className="text-xs text-muted-foreground sm:text-sm">Scroll to explore</div>
       </motion.div>
     </section>
   )

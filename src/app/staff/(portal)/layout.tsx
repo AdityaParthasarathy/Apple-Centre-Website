@@ -5,6 +5,7 @@ import { getFacultySession } from '@/lib/session'
 import { LogoutButton } from '@/components/staff/logout-button'
 import { PortalNav } from '@/components/staff/portal-nav'
 import { SkipLink } from '@/components/patterns/skip-link'
+import { AvatarPlaceholder } from '@/components/ui/avatar-placeholder'
 
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const session = await getFacultySession()
@@ -25,7 +26,10 @@ export default async function PortalLayout({ children }: { children: React.React
               </span>
             </Link>
             <div className="flex items-center gap-3">
-              <span className="hidden text-sm text-muted-foreground sm:inline">{session.name}</span>
+              <div className="hidden items-center gap-2 text-sm text-muted-foreground sm:flex">
+                <AvatarPlaceholder name={session.name} colored className="h-7 w-7 rounded-full text-xs" />
+                {session.name}
+              </div>
               <LogoutButton />
             </div>
           </div>

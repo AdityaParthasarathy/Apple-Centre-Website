@@ -33,21 +33,26 @@ export function SiteHeader({ searchIndex }: { searchIndex: SearchItem[] }) {
     <motion.header
       animate={{ y: hidden ? '-100%' : '0%' }}
       transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-      className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      className="sticky top-3 z-40 px-3 sm:top-4 sm:px-4"
     >
-      <Container className="py-4 flex items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-2 font-semibold text-lg hover:opacity-80 transition">
-          <Image src="/logo-icon.png" alt="" width={28} height={28} className="rounded-md" priority />
-          <span>Apple Centre</span>
-        </Link>
+      {/* Same Liquid Glass recipe as the floating dock (bottom of screen)
+          and Card — a floating rounded panel rather than an edge-to-edge
+          bar, so the two nav surfaces read as one material language. */}
+      <div className="mx-auto max-w-5xl rounded-2xl border border-white/40 bg-background/80 shadow-lg backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+        <Container className="py-3 flex items-center justify-between gap-4">
+          <Link href="/" className="flex items-center gap-2 font-semibold text-lg hover:opacity-80 transition">
+            <Image src="/logo-icon.png" alt="" width={28} height={28} className="rounded-md" priority />
+            <span>Apple Centre</span>
+          </Link>
 
-        <div className="flex items-center gap-4">
-          <div className="hidden sm:block">
-            <ExpandingSearch placeholder="Search programs, projects, events..." items={searchIndex} />
+          <div className="flex items-center gap-4">
+            <div className="hidden sm:block">
+              <ExpandingSearch placeholder="Search programs, projects, events..." items={searchIndex} />
+            </div>
+            <ApplyNowButton />
           </div>
-          <ApplyNowButton />
-        </div>
-      </Container>
+        </Container>
+      </div>
     </motion.header>
   )
 }

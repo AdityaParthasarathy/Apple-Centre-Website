@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { ExternalLink, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { StatusSteps } from '@/components/ui/status-steps'
 import { MotionButton } from '@/components/patterns/motion-link'
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/components/ui/select'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
@@ -93,6 +94,22 @@ export function ApplicationsManager({ initialApplications }: { initialApplicatio
                   {app.email} · {app.phone || 'No phone'} · {app.year}
                 </p>
                 {app.skills && <p className="mt-1 text-xs text-muted-foreground">Skills: {app.skills}</p>}
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <StatusSteps status={app.status} />
+                  {app.techComfort && (
+                    <span className="text-xs text-muted-foreground">Tech comfort: {app.techComfort}</span>
+                  )}
+                  {app.resumeUrl && (
+                    <a
+                      href={app.resumeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-0.5 text-xs text-accent hover:underline"
+                    >
+                      Resume <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
               </div>
 
               <div className="flex shrink-0 items-center gap-2">

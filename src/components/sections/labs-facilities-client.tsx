@@ -3,6 +3,7 @@
 import { Container } from '@/components/ui/container'
 import { SectionHeading } from '@/components/ui/section-heading'
 import { Card } from '@/components/ui/card'
+import { Keyboard } from '@/components/ui/keyboard'
 import { isExternalImage } from '@/lib/utils'
 import type { Facility } from '@/content/facilities'
 import { motion } from 'motion/react'
@@ -53,6 +54,14 @@ export function LabsFacilitiesSectionClient({ facilities }: { facilities: Facili
             </motion.div>
           ))}
         </div>
+
+        <div className="mt-16 max-w-2xl">
+          <h3 className="text-xl font-semibold text-foreground">Every workstation, at your fingertips</h3>
+          <p className="mt-2 text-sm text-muted-foreground">
+            The same Magic Keyboard that sits at every iMac workstation in the lab — try it.
+          </p>
+        </div>
+        <Keyboard showPreview className="mt-8" />
       </Container>
     </section>
   )
