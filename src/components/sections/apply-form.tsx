@@ -388,6 +388,7 @@ export function ApplyForm() {
       <StatefulButton
         type="submit"
         size="lg"
+        animated
         status={submitting ? 'loading' : 'idle'}
         disabled={submitting}
         className="w-full sm:w-auto"

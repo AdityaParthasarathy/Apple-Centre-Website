@@ -2,8 +2,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import { ArrowLeft } from 'lucide-react'
 import { Container } from '@/components/ui/container'
-import { buttonVariants } from '@/components/ui/button'
-import { MotionLink } from '@/components/patterns/motion-link'
+import { AnimatedCtaLink } from '@/components/patterns/motion-link'
 
 export const metadata: Metadata = {
   title: 'Page Not Found | Centre for Apple Technologies',
@@ -29,16 +28,10 @@ export default function NotFound() {
             The page you&apos;re looking for doesn&apos;t exist, or may have moved. Let&apos;s get
             you back on track.
           </p>
-          <MotionLink
-            href="/"
-            className={buttonVariants({ size: 'lg', className: 'gap-2' })}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.97 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-          >
+          <AnimatedCtaLink href="/" size="lg">
             <ArrowLeft className="h-4 w-4" />
             Back to Home
-          </MotionLink>
+          </AnimatedCtaLink>
         </div>
       </Container>
     </section>

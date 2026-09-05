@@ -6,8 +6,7 @@ import { AnnouncementBadge } from '@/components/patterns/announcement-badge'
 import { FlipWords } from '@/components/patterns/flip-words'
 import { TextEffect } from '@/components/patterns/text-effect'
 import { Container } from '@/components/ui/container'
-import { buttonVariants } from '@/components/ui/button'
-import { MotionLink } from '@/components/patterns/motion-link'
+import { AnimatedCtaLink } from '@/components/patterns/motion-link'
 import { IMacMarqueeField } from '@/components/patterns/imac-marquee-field'
 import { motion, useScroll, useTransform } from 'motion/react'
 import { ArrowRight } from 'lucide-react'
@@ -82,15 +81,9 @@ export function HeroSection() {
             transition={{ delay: 0.6, duration: 0.6 }}
             className="mt-2 flex items-center gap-8"
           >
-            <MotionLink
-              href="/programs"
-              className={buttonVariants({ size: 'lg', className: 'px-7' })}
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.97 }}
-              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-            >
+            <AnimatedCtaLink href="/programs" size="lg">
               Explore Programs
-            </MotionLink>
+            </AnimatedCtaLink>
             <Link
               href="#about"
               className="inline-flex items-center gap-1 text-base font-medium text-foreground transition-opacity hover:opacity-70"

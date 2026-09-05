@@ -1,6 +1,5 @@
 import { ThreeDMarquee } from '@/components/ui/3d-marquee'
-import { MotionLink } from '@/components/patterns/motion-link'
-import { buttonVariants } from '@/components/ui/button'
+import { AnimatedCtaLink, MotionLink } from '@/components/patterns/motion-link'
 
 // Real Centre photography (see content/centre-space.ts), repeated to fill
 // the 4-column grid the marquee expects — not the 30 unrelated Aceternity
@@ -40,15 +39,9 @@ export function PhotoWallSection() {
       </p>
 
       <div className="relative z-20 flex flex-wrap items-center justify-center gap-4 pt-4">
-        <MotionLink
-          href="/apply"
-          className={buttonVariants({ size: 'lg' })}
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.97 }}
-          transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-        >
+        <AnimatedCtaLink href="/apply" size="lg" onDark>
           Apply Now
-        </MotionLink>
+        </AnimatedCtaLink>
         <MotionLink
           href="/programs"
           className="rounded-md border border-white/20 bg-white/10 px-6 py-2.5 text-sm font-medium text-white backdrop-blur-sm transition-colors hover:bg-white/20 focus:ring-2 focus:ring-white/20 focus:ring-offset-2 focus:ring-offset-black focus:outline-none"

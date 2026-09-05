@@ -5,8 +5,7 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, Calendar, Clock, MapPin, Users } from 'lucide-react'
 import { Container } from '@/components/ui/container'
 import { Badge } from '@/components/ui/badge'
-import { buttonVariants } from '@/components/ui/button'
-import { MotionLink } from '@/components/patterns/motion-link'
+import { AnimatedCtaLink } from '@/components/patterns/motion-link'
 import { events } from '@/content/events'
 import { findEventBySlug } from '@/lib/merge-events'
 import { isExternalImage } from '@/lib/utils'
@@ -129,15 +128,9 @@ export default async function EventDetailPage({
                 </dl>
               </div>
 
-              <MotionLink
-                href="/apply"
-                className={buttonVariants({ className: 'w-full' })}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-              >
+              <AnimatedCtaLink href="/apply" className="w-full">
                 Register Interest
-              </MotionLink>
+              </AnimatedCtaLink>
             </aside>
           </div>
         </Container>

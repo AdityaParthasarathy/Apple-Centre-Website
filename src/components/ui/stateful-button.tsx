@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react'
 import { Loader2, Check } from 'lucide-react'
 import type { VariantProps } from 'class-variance-authority'
 import { buttonVariants } from '@/components/ui/button'
+import { ANIMATED_BUTTON_SIZES } from '@/components/patterns/motion-link'
 import { cn } from '@/lib/utils'
 
 type Phase = 'idle' | 'loading' | 'success'
@@ -21,6 +22,11 @@ interface StatefulButtonProps
    *  spinner while the promise is pending, a checkmark for ~1.6s once it
    *  resolves, then back to idle. Ignored if `status` is passed. */
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => unknown | Promise<unknown>
+  /** Swap the plain buttonVariants look for the site's ripple-fill CTA
+   *  style (see .animated-button in globals.css) — opt-in, since this
+   *  component is also used for the staff login form, which isn't part
+   *  of the public-page CTA treatment. */
+  animated?: boolean
 }
 
 /** Built on the same motion.button + buttonVariants foundation as
@@ -34,6 +40,7 @@ export function StatefulButton({
   status,
   onClick,
   disabled,
+  animated = false,
   ...props
 }: StatefulButtonProps) {
   const [internalPhase, setInternalPhase] = useState<Phase>('idle')
@@ -52,6 +59,56 @@ export function StatefulButton({
     }
   }
 
+  const stateIcons = (
+    <AnimatePresence mode="popLayout" initial={false}>
+      {phase === 'loading' && (
+        <motion.span
+          key="loading"
+          layout
+          initial={{ width: 0, opacity: 0 }}
+          animate={{ width: 16, opacity: 1 }}
+          exit={{ width: 0, opacity: 0 }}
+          className="flex items-center overflow-hidden"
+        >
+          <Loader2 className="h-4 w-4 animate-spin" />
+        </motion.span>
+      )}
+      {phase === 'success' && (
+        <motion.span
+          key="success"
+          layout
+          initial={{ width: 0, opacity: 0 }}
+          animate={{ width: 16, opacity: 1 }}
+          exit={{ width: 0, opacity: 0 }}
+          className="flex items-center overflow-hidden"
+        >
+          <Check className="h-4 w-4" />
+        </motion.span>
+      )}
+    </AnimatePresence>
+  )
+
+  if (animated) {
+    const animatedSize = ANIMATED_BUTTON_SIZES[(size as 'sm' | 'default' | 'lg' | undefined) ?? 'default']
+    return (
+      <motion.button
+        layout
+        className={cn('animated-button', animatedSize, className)}
+        whileTap={phase === 'idle' ? { scale: 0.96 } : undefined}
+        transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+        onClick={handleClick}
+        disabled={disabled || phase === 'loading'}
+        {...props}
+      >
+        <motion.span layout className="animated-button-content">
+          {stateIcons}
+          {children}
+        </motion.span>
+        <span className="animated-button-fill" aria-hidden="true" />
+      </motion.button>
+    )
+  }
+
   return (
     <motion.button
       layout
@@ -63,32 +120,7 @@ export function StatefulButton({
       disabled={disabled || phase === 'loading'}
       {...props}
     >
-      <AnimatePresence mode="popLayout" initial={false}>
-        {phase === 'loading' && (
-          <motion.span
-            key="loading"
-            layout
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 16, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            className="flex items-center overflow-hidden"
-          >
-            <Loader2 className="h-4 w-4 animate-spin" />
-          </motion.span>
-        )}
-        {phase === 'success' && (
-          <motion.span
-            key="success"
-            layout
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 16, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            className="flex items-center overflow-hidden"
-          >
-            <Check className="h-4 w-4" />
-          </motion.span>
-        )}
-      </AnimatePresence>
+      {stateIcons}
       <motion.span layout>{children}</motion.span>
     </motion.button>
   )

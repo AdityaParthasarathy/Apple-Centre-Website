@@ -5,9 +5,8 @@ import { Container } from '@/components/ui/container'
 import { SectionHeading } from '@/components/ui/section-heading'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { buttonVariants } from '@/components/ui/button'
 import { ProjectVisual } from '@/components/ui/project-visual'
-import { MotionLink } from '@/components/patterns/motion-link'
+import { AnimatedCtaLink } from '@/components/patterns/motion-link'
 import { isExternalImage } from '@/lib/utils'
 import type { Project } from '@/content/projects'
 import { motion } from 'motion/react'
@@ -87,15 +86,9 @@ export function ProjectsSectionClient({ projects }: { projects: Project[] }) {
         </div>
 
         <div className="text-center mt-12">
-          <MotionLink
-            href="/projects"
-            className={buttonVariants({ size: 'lg' })}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.97 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-          >
+          <AnimatedCtaLink href="/projects" size="lg">
             View All Projects
-          </MotionLink>
+          </AnimatedCtaLink>
         </div>
       </Container>
     </section>

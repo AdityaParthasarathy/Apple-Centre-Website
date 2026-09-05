@@ -2,9 +2,7 @@
 
 import { motion } from 'motion/react'
 import { Container } from '@/components/ui/container'
-import { buttonVariants } from '@/components/ui/button'
-import { MotionLink } from '@/components/patterns/motion-link'
-import { cn } from '@/lib/utils'
+import { AnimatedCtaLink } from '@/components/patterns/motion-link'
 
 // The page's other close: everything above this is white-on-white content
 // sections, so the site never lands a single confident color moment before
@@ -38,15 +36,9 @@ export function CtaBand() {
           transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
           viewport={{ once: true }}
         >
-          <MotionLink
-            href="/apply"
-            className={cn(buttonVariants({ size: 'lg' }), 'mt-2 bg-accent px-8 text-accent-foreground hover:bg-accent/90')}
-            whileHover={{ scale: 1.04 }}
-            whileTap={{ scale: 0.97 }}
-            transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-          >
+          <AnimatedCtaLink href="/apply" size="lg" onDark className="mt-2">
             Apply Now
-          </MotionLink>
+          </AnimatedCtaLink>
         </motion.div>
       </Container>
     </section>

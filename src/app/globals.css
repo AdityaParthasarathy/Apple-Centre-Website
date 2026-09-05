@@ -674,3 +674,170 @@ body:has(.imac-window-active) nav {
     opacity: 1 !important;
   }
 }
+
+/* ---------------------------------------------------------------------
+   Animated CTA button — the shared ripple-fill hover treatment for every
+   primary call-to-action across the public pages (nav "Apply Now", hero,
+   section CTAs, the apply form's submit button, the 404 page). A small
+   accent-colored dot sits centered and invisible at rest, then grows to
+   fill the whole pill on hover/focus. Adapted from a transparent,
+   ring-bordered pattern that was originally built for a dark surface
+   (translucent white text/ring, blue fill) — recolored here to this
+   site's tokens so it reads correctly against a light background instead.
+   `.animated-button-content` and `.animated-button-fill` are real DOM
+   nodes, not pseudo-elements (see AnimatedCtaLink in motion-link.tsx and
+   the `animated` prop on StatefulButton) — that way the label always
+   paints above the fill no matter what it contains (plain text, an icon
+   plus text, etc), instead of relying on generated-content stacking. */
+.animated-button {
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background-color: transparent;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+  color: var(--foreground);
+  box-shadow: 0 0 0 1.5px var(--border);
+  cursor: pointer;
+  overflow: hidden;
+  white-space: nowrap;
+  transition:
+    box-shadow 0.5s cubic-bezier(0.23, 1, 0.32, 1),
+    color 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* Two sections (cta-band, photo-wall) sit on a dark background — this
+   swaps just the resting text/ring for light-on-dark. The hover state
+   (accent fill, light text) is identical either way, so it isn't
+   repeated here. */
+.animated-button--on-dark {
+  color: var(--background);
+  box-shadow: 0 0 0 1.5px color-mix(in oklch, var(--background), transparent 65%);
+}
+
+.animated-button-content {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.animated-button-fill {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 0;
+  width: 20px;
+  height: 20px;
+  transform: translate(-50%, -50%);
+  background-color: var(--accent);
+  border-radius: 50%;
+  opacity: 0;
+  transition:
+    width 0.7s cubic-bezier(0.23, 1, 0.32, 1),
+    height 0.7s cubic-bezier(0.23, 1, 0.32, 1),
+    opacity 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.animated-button:hover,
+.animated-button:focus-visible {
+  color: var(--accent-foreground);
+  box-shadow: 0 0 0 4px color-mix(in oklch, var(--accent), transparent 55%);
+  outline: none;
+}
+
+.animated-button:hover .animated-button-fill,
+.animated-button:focus-visible .animated-button-fill {
+  /* Large enough to cover any real button width from a centered dot,
+     including the full-width apply-form submit button on mobile. */
+  width: 900px;
+  height: 900px;
+  opacity: 1;
+}
+
+.animated-button:active {
+  transform: scale(0.96);
+}
+
+.animated-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ---------------------------------------------------------------------
+   Staff portal logout button — a compact circular icon that expands into
+   a pill revealing the "Logout"/"Signing out…" label on hover, instead
+   of a plain outline button. Colors are the site's own monochrome pair
+   (--foreground/--background) so it reads as part of this UI rather
+   than a pasted-in component; adapted from a pattern that used a fixed
+   red fill and white icon/text. */
+.staff-logout-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 2.25rem;
+  width: 2.25rem;
+  flex-shrink: 0;
+  border-radius: 9999px;
+  border: none;
+  background-color: var(--foreground);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  overflow: hidden;
+  transition:
+    width 0.35s cubic-bezier(0.23, 1, 0.32, 1),
+    background-color 0.35s ease;
+}
+
+.staff-logout-btn:hover,
+.staff-logout-btn:focus-visible,
+.staff-logout-btn[data-loading='true'] {
+  width: 8.75rem;
+  background-color: var(--accent);
+}
+
+.staff-logout-btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.staff-logout-btn:disabled {
+  cursor: not-allowed;
+}
+
+.staff-logout-btn-icon {
+  display: flex;
+  width: 2.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.staff-logout-btn-icon svg {
+  height: 1rem;
+  width: 1rem;
+  fill: var(--background);
+}
+
+.staff-logout-btn-text {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  color: var(--background);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: left;
+  transition: opacity 0.25s ease 0.1s;
+}
+
+.staff-logout-btn:hover .staff-logout-btn-text,
+.staff-logout-btn:focus-visible .staff-logout-btn-text,
+.staff-logout-btn[data-loading='true'] .staff-logout-btn-text {
+  opacity: 1;
+}

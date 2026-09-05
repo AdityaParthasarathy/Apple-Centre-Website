@@ -3,8 +3,7 @@
 import Image from 'next/image'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { buttonVariants } from '@/components/ui/button'
-import { MotionLink } from '@/components/patterns/motion-link'
+import { AnimatedCtaLink } from '@/components/patterns/motion-link'
 import { isExternalImage } from '@/lib/utils'
 import type { Program } from '@/content/programs'
 import { motion } from 'motion/react'
@@ -57,15 +56,9 @@ export function ProgramsGrid({ programs }: { programs: Program[] }) {
               </div>
               <div className="mt-auto flex items-center justify-between border-t border-border pt-4">
                 <span className="text-sm text-muted-foreground">{program.duration}</span>
-                <MotionLink
-                  href="/apply"
-                  className={buttonVariants({ size: 'sm' })}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                >
+                <AnimatedCtaLink href="/apply" size="sm">
                   Apply Now
-                </MotionLink>
+                </AnimatedCtaLink>
               </div>
             </div>
           </Card>
