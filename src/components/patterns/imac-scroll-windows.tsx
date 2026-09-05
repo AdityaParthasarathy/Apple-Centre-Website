@@ -90,16 +90,30 @@ function IMacScrollWindow({
         return (delta > 0 && win.scrollY >= maxScroll - 2) || (delta < 0 && win.scrollY <= 2)
       }
 
-      // No `immediate: true` here — every other scroll on this page (see
-      // lenisOptions in smooth-scroll.tsx) is eased over 1.2s, so an
-      // instant, unsmoothed jump right at this hand-off read as a jarring
-      // twitch against that backdrop. Letting Lenis ease this one too
-      // makes the hand-off feel like a continuation of the same gesture
-      // instead of a seam.
+      // Mirrors Lenis's own wheel handler almost exactly (see
+      // onVirtualScroll in its source) rather than a simpler
+      // `scrollTo(animatedScroll + delta)`: no `immediate` — every other
+      // scroll on this page (lenisOptions in smooth-scroll.tsx) eases over
+      // 1.2s, so an instant unsmoothed jump right at this hand-off read as
+      // a visible twitch against that backdrop. And critically,
+      // `targetScroll` (the pending destination), not `animatedScroll`
+      // (wherever the eased animation has actually reached so far) — a
+      // fast wheel fires many events before one tween finishes, and
+      // accumulating onto animatedScroll would make each new tick target
+      // a point BEHIND the one already in flight, stuttering the motion
+      // backwards instead of extending it. `programmatic: false` is what
+      // makes scrollTo update targetScroll immediately instead of only as
+      // the animation catches up, so the next tick sees the true pending
+      // target rather than a stale one.
       const onWheel = (e: WheelEvent) => {
         if (!atBoundary(e.deltaY)) return
         e.preventDefault()
-        lenis.scrollTo(lenis.animatedScroll + e.deltaY)
+        lenis.scrollTo(lenis.targetScroll + e.deltaY, {
+          programmatic: false,
+          lerp: lenis.options.lerp,
+          duration: lenis.options.duration,
+          easing: lenis.options.easing,
+        })
       }
 
       // Touch never fires 'wheel' — without its own boundary check, a
