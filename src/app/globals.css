@@ -484,7 +484,16 @@ body:has(#embed-chrome-off) footer {
    way out (see standOpacity in the component). */
 .imac-stand {
   position: absolute;
-  top: calc(50% + 17vh);
+  /* Half of the shell's own closed-state height — must track
+     imac-scroll-windows.tsx's shellHeight formula exactly (currently
+     min(34vh, 24.29vw), so half of that is min(17vh, 12.145vw)). A plain
+     17vh here assumes the shell is always 34vh tall, which stopped being
+     true once that height picked up an aspect-ratio cap: on anything
+     narrower than roughly 1.4:1 (every tablet, every phone, plenty of
+     laptops), the shell renders shorter than 34vh, but the stand still
+     dropped down as if it hadn't — detaching from the shell's bottom edge
+     by a visible gap instead of sitting flush against it. */
+  top: calc(50% + min(17vh, 12.145vw));
   display: flex;
   flex-direction: column;
   align-items: center;

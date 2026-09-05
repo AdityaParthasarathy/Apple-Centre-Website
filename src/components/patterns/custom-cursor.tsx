@@ -16,6 +16,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 
@@ -121,6 +122,17 @@ export function CustomCursor({
   const prefersReducedMotion = useReducedMotion()
   const isCoarsePointer = useCoarsePointer()
   const [isHovering, setIsHovering] = useState(false)
+  // The dot is position:fixed (needed so it can follow the pointer smoothly
+  // without recomputing an offset on every scroll) — but fixed positioning
+  // is relative to the viewport, not to this component's place in the
+  // document. Without this, the dot renders at the cursor's screen position
+  // no matter which section of the page happens to be scrolled into view,
+  // for as long as this component is mounted (i.e. the whole time the
+  // homepage is loaded) — it doesn't just show up over the gallery grid
+  // it's meant for, it shows up over anything, including sections stacked
+  // well above or below it in the DOM.
+  const [isInside, setIsInside] = useState(false)
+  const wrapperRef = useRef<HTMLDivElement>(null)
 
   const cursorX = useMotionValue(0)
   const cursorY = useMotionValue(0)
@@ -142,6 +154,13 @@ export function CustomCursor({
     const handlePointerMove = (event: PointerEvent) => {
       cursorX.set(event.clientX)
       cursorY.set(event.clientY)
+      const rect = wrapperRef.current?.getBoundingClientRect()
+      const inside = !!rect &&
+        event.clientX >= rect.left &&
+        event.clientX <= rect.right &&
+        event.clientY >= rect.top &&
+        event.clientY <= rect.bottom
+      setIsInside((prev) => (prev === inside ? prev : inside))
     }
 
     window.addEventListener('pointermove', handlePointerMove)
@@ -152,8 +171,8 @@ export function CustomCursor({
 
   return (
     <CustomCursorContext.Provider value={contextValue}>
-      <div className={cn(customCursorVariants({ layout, className }))} {...props}>
-        {isCoarsePointer || prefersReducedMotion ? null : (
+      <div ref={wrapperRef} className={cn(customCursorVariants({ layout, className }))} {...props}>
+        {isCoarsePointer || prefersReducedMotion || !isInside ? null : (
           <motion.div
             animate={appearance}
             aria-hidden="true"
