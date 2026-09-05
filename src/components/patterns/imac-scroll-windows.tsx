@@ -90,10 +90,16 @@ function IMacScrollWindow({
         return (delta > 0 && win.scrollY >= maxScroll - 2) || (delta < 0 && win.scrollY <= 2)
       }
 
+      // No `immediate: true` here — every other scroll on this page (see
+      // lenisOptions in smooth-scroll.tsx) is eased over 1.2s, so an
+      // instant, unsmoothed jump right at this hand-off read as a jarring
+      // twitch against that backdrop. Letting Lenis ease this one too
+      // makes the hand-off feel like a continuation of the same gesture
+      // instead of a seam.
       const onWheel = (e: WheelEvent) => {
         if (!atBoundary(e.deltaY)) return
         e.preventDefault()
-        lenis.scrollTo(lenis.animatedScroll + e.deltaY, { immediate: true })
+        lenis.scrollTo(lenis.animatedScroll + e.deltaY)
       }
 
       // Touch never fires 'wheel' — without its own boundary check, a
