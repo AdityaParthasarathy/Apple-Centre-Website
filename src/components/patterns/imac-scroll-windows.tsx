@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef, type CSSProperties } from 'react'
-import { motion, useScroll, useTransform } from 'motion/react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { motion, useScroll, useTransform, useMotionValueEvent } from 'motion/react'
 import { useLenis } from 'lenis/react'
 import { IMacMarqueeField } from '@/components/patterns/imac-marquee-field'
 
@@ -40,6 +40,26 @@ function IMacScrollWindow({
     offset: ['start start', 'end end'],
   })
   const lenis = useLenis()
+
+  // The iframe only exists in the DOM while the shell is actually holding
+  // at fullscreen — never while it's growing or shrinking. Previously it
+  // was mounted (and being live-resized) for the entire animation: since
+  // the embedded page is a full, real copy of the site (its own React
+  // tree, its own Lenis instance, its own vw/vh-based layout), resizing
+  // that iframe element forced it to recompute its entire layout on every
+  // single scroll frame — and with three windows on the page, up to three
+  // of these full copies could be doing that at once. That's what made
+  // scrolling choppy. Mounting only once the shell is already at its
+  // final size (100vw/100vh, static) means there's nothing left to resize
+  // — and since a scroll position only ever sits inside one window's
+  // range at a time, at most one iframe exists at all. The 0.06 buffer on
+  // each side of the [0.24, 0.68] range content-opacity actually fades
+  // over gives the iframe a moment to load before it needs to be visible.
+  const [iframeActive, setIframeActive] = useState(false)
+  useMotionValueEvent(scrollYProgress, 'change', (v) => {
+    const shouldBeActive = v > 0.18 && v < 0.74
+    setIframeActive((prev) => (prev === shouldBeActive ? prev : shouldBeActive))
+  })
 
   // Browsers don't reliably chain a wheel/touch gesture from an exhausted
   // iframe back up to the parent document the way they do for a nested
@@ -108,7 +128,7 @@ function IMacScrollWindow({
       iframe.removeEventListener('load', attach)
       detach?.()
     }
-  }, [lenis])
+  }, [lenis, iframeActive])
 
   // Symmetric: grow 0 → 0.22, hold full-screen through 0.68, shrink back by
   // 0.9 — a mirror of the same keyframes on the way in and out, so opening
@@ -172,14 +192,15 @@ function IMacScrollWindow({
                 <div className="imac-address-pill">applecentre.rit.edu/#{id}</div>
               </div>
               <div className="imac-reveal-iframe-wrap">
-                <motion.iframe
-                  ref={iframeRef}
-                  src={`/?embed=1&section=${id}`}
-                  title={`Apple Centre — ${label}`}
-                  className="imac-reveal-iframe"
-                  style={{ pointerEvents: iframePointerEvents }}
-                  loading="lazy"
-                />
+                {iframeActive && (
+                  <motion.iframe
+                    ref={iframeRef}
+                    src={`/?embed=1&section=${id}`}
+                    title={`Apple Centre — ${label}`}
+                    className="imac-reveal-iframe"
+                    style={{ pointerEvents: iframePointerEvents }}
+                  />
+                )}
               </div>
             </motion.div>
           </div>
