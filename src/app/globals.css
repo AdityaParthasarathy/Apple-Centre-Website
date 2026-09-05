@@ -436,6 +436,21 @@ body:has(#embed-chrome-off) footer {
   display: none;
 }
 
+/* The real page's own sticky header and fixed floating dock both carry a
+   z-index (40) higher than the iMac shell's, so once a window grows to
+   fill the viewport, that chrome kept floating on top of it — most
+   visible on phone widths, where the header bar and dock pill are large
+   enough to cover real chunks of the embedded content underneath. Each
+   IMacScrollWindow drops an .imac-window-active marker in while its own
+   shell is at (or near) fullscreen — see iframeActive in
+   imac-scroll-windows.tsx — so this can hide the real chrome for exactly
+   that window, the same way #embed-chrome-off hides it inside the
+   embedded iframe itself. */
+body:has(.imac-window-active) header,
+body:has(.imac-window-active) nav {
+  display: none;
+}
+
 /* iMac scroll windows — three in sequence (see imac-scroll-windows.tsx),
    each its own tall runway with a sticky 100vh stage. --imac-color is set
    inline per window (About/Labs & Facilities/Student Projects) and drives

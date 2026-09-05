@@ -167,6 +167,7 @@ function IMacScrollWindow({
 
   return (
     <div ref={wrapperRef} className="imac-reveal" id={id} style={{ '--imac-color': color } as CSSProperties}>
+      {iframeActive && <div className="imac-window-active" hidden />}
       <div className="imac-reveal-sticky">
         <motion.div className="imac-stand" style={{ opacity: standOpacity }}>
           <div className="imac-stand-neck" />

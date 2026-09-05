@@ -38,6 +38,16 @@ export function AnimatedTestimonials({ testimonials, autoplay = false }: Animate
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoplay])
 
+  // testimonials comes from a live external sheet (see faculty-client.tsx)
+  // — an empty result is a real, if rare, state (a slow/failed fetch, no
+  // rows yet), not something that can't happen. Without this guard,
+  // `current` below is undefined and `current.name` throws — which,
+  // because this is a Server Component tree, doesn't just break this
+  // section, it crashes the entire homepage with a 500.
+  if (testimonials.length === 0) {
+    return <p className="text-sm text-muted-foreground">Team profiles are on their way.</p>
+  }
+
   const current = testimonials[active]
 
   return (
