@@ -41,23 +41,22 @@ function IMacScrollWindow({
   })
   const lenis = useLenis()
 
-  // The iframe only exists in the DOM while the shell is actually holding
-  // at fullscreen — never while it's growing or shrinking. Previously it
-  // was mounted (and being live-resized) for the entire animation: since
-  // the embedded page is a full, real copy of the site (its own React
-  // tree, its own Lenis instance, its own vw/vh-based layout), resizing
-  // that iframe element forced it to recompute its entire layout on every
-  // single scroll frame — and with three windows on the page, up to three
-  // of these full copies could be doing that at once. That's what made
-  // scrolling choppy. Mounting only once the shell is already at its
-  // final size (100vw/100vh, static) means there's nothing left to resize
-  // — and since a scroll position only ever sits inside one window's
-  // range at a time, at most one iframe exists at all. The 0.06 buffer on
-  // each side of the [0.24, 0.68] range content-opacity actually fades
-  // over gives the iframe a moment to load before it needs to be visible.
+  // The iframe used to only mount once the shell was already fully grown,
+  // because resizing it while mounted forced its embedded document to
+  // reflow on every scroll frame — up to three full copies of the site
+  // doing that at once is what made scrolling choppy in the first place.
+  // .imac-reveal-iframe is now sized in fixed viewport units rather than
+  // 100%/100% of the (animating) shell, so it never reflows regardless of
+  // when it mounts — which means this can now activate much earlier
+  // (v > 0.03 instead of 0.18) purely to buy the iframe more real load
+  // time before content-opacity needs it visible at 0.24. That embedded
+  // page is a full separate request — its own layout render, its own data
+  // fetches — so the extra ~0.2 of this window's 260vh runway is the
+  // difference between the section popping in fully loaded versus a
+  // visible blank-then-pop.
   const [iframeActive, setIframeActive] = useState(false)
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
-    const shouldBeActive = v > 0.18 && v < 0.74
+    const shouldBeActive = v > 0.03 && v < 0.89
     setIframeActive((prev) => (prev === shouldBeActive ? prev : shouldBeActive))
   })
 

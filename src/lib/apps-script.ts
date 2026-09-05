@@ -1,3 +1,5 @@
+import { unstable_cache } from 'next/cache'
+
 interface AppsScriptSuccess {
   success: true
   [key: string]: unknown
@@ -57,6 +59,19 @@ async function callAppsScriptOnce<T extends Record<string, unknown>>(
   return body as unknown as T
 }
 
+// Apps Script Web Apps routinely take 1-4s+ per call, and this is a POST —
+// fetch's own automatic request memoization/caching never covers POST, so
+// without this every `list*` read paid that full latency completely fresh,
+// on every request. That's the entire cost of opening the Labs & Facilities
+// or Student Projects iMac scroll window (each renders a section that
+// makes exactly one of these calls — see imac-scroll-windows.tsx), and it
+// hit every other page that shows faculty-managed content too. 60s matches
+// the staleness every one of those routes already accepts elsewhere (see
+// `export const revalidate = 60`). Only `list*` (read-only) actions are
+// cached — a write's result being action-specific and often one-shot isn't
+// something a shared cache should paper over.
+const callAppsScriptOnceCached = unstable_cache(callAppsScriptOnce, ['apps-script-list'], { revalidate: 60 })
+
 export async function callAppsScript<T extends Record<string, unknown> = Record<string, unknown>>(
   action: string,
   payload: Record<string, unknown> = {}
@@ -66,14 +81,17 @@ export async function callAppsScript<T extends Record<string, unknown> = Record<
     throw new Error('Apps Script is not configured (missing GOOGLE_APPS_SCRIPT_* env vars).')
   }
 
+  const isReadOnly = action.startsWith('list')
+  const call = isReadOnly ? callAppsScriptOnceCached : callAppsScriptOnce
+
   try {
-    return await callAppsScriptOnce<T>(GOOGLE_APPS_SCRIPT_URL, GOOGLE_APPS_SCRIPT_SECRET, action, payload)
+    return (await call(GOOGLE_APPS_SCRIPT_URL, GOOGLE_APPS_SCRIPT_SECRET, action, payload)) as T
   } catch (err) {
     // Only read-only `list*` actions retry — they're safe to repeat. A
     // write (add/update/delete) that appears to fail client-side may have
     // already committed server-side (this bit us once already, producing a
     // duplicate gallery row), so retrying those would risk double-writes.
-    if (!action.startsWith('list')) throw err
-    return await callAppsScriptOnce<T>(GOOGLE_APPS_SCRIPT_URL, GOOGLE_APPS_SCRIPT_SECRET, action, payload)
+    if (!isReadOnly) throw err
+    return (await call(GOOGLE_APPS_SCRIPT_URL, GOOGLE_APPS_SCRIPT_SECRET, action, payload)) as T
   }
 }
