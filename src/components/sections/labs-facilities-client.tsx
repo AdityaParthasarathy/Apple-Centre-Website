@@ -44,6 +44,7 @@ export function LabsFacilitiesSectionClient({ facilities }: { facilities: Facili
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                     sizes="(max-width: 640px) 100vw, 50vw"
                     unoptimized={isExternalImage(facility.image)}
+                    priority={idx < 2}
                   />
                 </div>
                 <div className="p-6 space-y-2">

@@ -42,6 +42,7 @@ export const ThreeDMarquee = ({ images, className }: { images: string[]; classNa
                         className="object-cover"
                         sizes="970px"
                         unoptimized={isExternalImage(image)}
+                        priority={colIndex === 0 && imageIndex === 0}
                       />
                     </motion.div>
                   </div>
