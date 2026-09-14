@@ -459,6 +459,20 @@ body:has(.imac-window-active) nav {
   position: relative;
   z-index: 1;
   height: 260vh;
+  /* All three windows (About, Labs & Facilities, Student Projects) are
+     mounted at once, but only one is ever near the viewport at a time —
+     without this, the other two were still animating their own shell's
+     width/height/padding/border-radius on every single scroll frame for
+     the ENTIRE page (their own scrollYProgress just sits pinned near 0 or
+     1 off-screen, but framer-motion still writes those styles each
+     frame), each one forcing its own layout recalculation. content-
+     visibility skips layout/paint for a window's whole subtree — sticky
+     stage, shell, chrome, iframe — while it isn't close to the viewport,
+     cutting the per-frame cost roughly to the one window actually in
+     play. contain-intrinsic-size matches the explicit height above so
+     nothing jumps when a window's rendering resumes. */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 260vh;
 }
 
 .imac-reveal-sticky {
