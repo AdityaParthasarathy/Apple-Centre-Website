@@ -25,7 +25,7 @@ export function SiteFooter({ programs }: { programs: Program[] }) {
           {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Image src="/logo-icon.png" alt="" width={24} height={24} className="rounded-md" />
+              <Image src="/rit-icon.png" alt="" width={24} height={24} className="rounded-md" />
               <span className="font-semibold">Apple Centre</span>
             </div>
             <p className="text-sm text-background/60">

@@ -69,7 +69,7 @@ export function OpeningReveal({ onComplete }: OpeningRevealProps) {
               transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
             >
               <Image
-                src="/logo-icon.png"
+                src="/rit-icon.png"
                 alt="Centre for Apple Technologies"
                 width={64}
                 height={64}

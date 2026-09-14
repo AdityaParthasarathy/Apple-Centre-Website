@@ -14,7 +14,7 @@ export default function NotFound() {
       <Container>
         <div className="mx-auto flex max-w-md flex-col items-center text-center">
           <Image
-            src="/logo-icon.png"
+            src="/rit-icon.png"
             alt=""
             width={40}
             height={40}

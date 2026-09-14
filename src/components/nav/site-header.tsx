@@ -44,8 +44,9 @@ export function SiteHeader({ searchIndex }: { searchIndex: SearchItem[] }) {
             <Image
               src="/rit-logo.png"
               alt="Rajalakshmi Institute of Technology"
-              width={2172}
-              height={493}
+              width={900}
+              height={204}
+              sizes="230px"
               className="h-10 w-auto sm:h-12"
               priority
             />

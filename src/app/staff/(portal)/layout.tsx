@@ -20,7 +20,7 @@ export default async function PortalLayout({ children }: { children: React.React
         <div className="mx-auto max-w-5xl px-4 py-4 sm:px-6">
           <div className="flex items-center justify-between gap-4">
             <Link href="/staff" className="flex items-center gap-2 text-lg font-semibold text-foreground transition-opacity hover:opacity-80">
-              <Image src="/logo-icon.png" alt="" width={26} height={26} className="rounded-md" />
+              <Image src="/rit-icon.png" alt="" width={26} height={26} className="rounded-md" />
               <span>
                 Faculty Portal
               </span>
