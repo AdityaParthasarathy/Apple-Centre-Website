@@ -40,9 +40,15 @@ export function SiteHeader({ searchIndex }: { searchIndex: SearchItem[] }) {
           bar, so the two nav surfaces read as one material language. */}
       <div className="mx-auto max-w-5xl rounded-2xl border border-white/40 bg-background/80 shadow-lg backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
         <Container className="py-3 flex items-center justify-between gap-4">
-          <Link href="/" className="flex items-center gap-2 font-semibold text-lg hover:opacity-80 transition">
-            <Image src="/logo-icon.png" alt="" width={28} height={28} className="rounded-md" priority />
-            <span>Apple Centre</span>
+          <Link href="/" className="flex items-center hover:opacity-80 transition">
+            <Image
+              src="/rit-logo.png"
+              alt="Rajalakshmi Institute of Technology"
+              width={2172}
+              height={493}
+              className="h-10 w-auto sm:h-12"
+              priority
+            />
           </Link>
 
           <div className="flex items-center gap-4">
