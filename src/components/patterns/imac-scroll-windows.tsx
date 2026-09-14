@@ -176,7 +176,31 @@ function IMacScrollWindow({
   const bezelPad = useTransform(scrollYProgress, [0, 0.22, 0.68, 0.9], ['6px', '0px', '0px', '6px'])
   const chinHeight = useTransform(scrollYProgress, [0, 0.22, 0.68, 0.9], ['16px', '0px', '0px', '16px'])
   const notchOpacity = useTransform(scrollYProgress, [0, 0.15, 0.75, 0.9], [1, 0, 0, 1])
-  const standOpacity = useTransform(scrollYProgress, [0, 0.1, 0.82, 0.92], [1, 0, 0, 1])
+  // Previously faded out by 0.1 and back in only by 0.82 — nowhere close to
+  // the shell's own 0.22/0.68 grow/shrink finish points, so for most of the
+  // actual resize the shell was already a clearly medium-sized rectangle
+  // with no stand under it at all, reading as a glitch rather than part of
+  // the motion. Tracking the same schedule as the shell's own size keeps it
+  // visible for the whole grow/shrink, only fading right at each end where
+  // a stand under a fullscreen "browser window" wouldn't make sense anyway.
+  const standOpacity = useTransform(scrollYProgress, [0, 0.2, 0.7, 0.9], [1, 0, 0, 1])
+  // The stand's vertical position is half the shell's CURRENT height, not
+  // just its closed-state height — it used to be a static CSS value
+  // (half of the closed formula only), which was fine while standOpacity
+  // hid it almost immediately, but now that it stays visible through most
+  // of the resize, a fixed offset would drift away from the shell's actual
+  // (growing) bottom edge. Mirrors shellHeight's own keyframes exactly,
+  // just halved, so it tracks the real edge at every point in between.
+  const standTop = useTransform(
+    scrollYProgress,
+    [0, 0.22, 0.68, 0.9],
+    [
+      'calc(50% + min(17vh, 12.145vw))',
+      'calc(50% + min(50vh, 250vw))',
+      'calc(50% + min(50vh, 250vw))',
+      'calc(50% + min(17vh, 12.145vw))',
+    ]
+  )
   const contentOpacity = useTransform(scrollYProgress, [0.24, 0.32, 0.6, 0.68], [0, 1, 1, 0])
   // Wheel/touch input only reaches the iframe once it's actually visible —
   // otherwise scrolling past a still-small, still-closed iMac would get
@@ -188,7 +212,7 @@ function IMacScrollWindow({
     <div ref={wrapperRef} className="imac-reveal" id={id} style={{ '--imac-color': color } as CSSProperties}>
       {iframeActive && <div className="imac-window-active" hidden />}
       <div className="imac-reveal-sticky">
-        <motion.div className="imac-stand" style={{ opacity: standOpacity }}>
+        <motion.div className="imac-stand" style={{ opacity: standOpacity, top: standTop }}>
           <div className="imac-stand-neck" />
           <div className="imac-stand-foot" />
         </motion.div>

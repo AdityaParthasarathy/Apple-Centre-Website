@@ -513,15 +513,14 @@ body:has(.imac-window-active) nav {
    way out (see standOpacity in the component). */
 .imac-stand {
   position: absolute;
-  /* Half of the shell's own closed-state height — must track
-     imac-scroll-windows.tsx's shellHeight formula exactly (currently
-     min(34vh, 24.29vw), so half of that is min(17vh, 12.145vw)). A plain
-     17vh here assumes the shell is always 34vh tall, which stopped being
-     true once that height picked up an aspect-ratio cap: on anything
-     narrower than roughly 1.4:1 (every tablet, every phone, plenty of
-     laptops), the shell renders shorter than 34vh, but the stand still
-     dropped down as if it hadn't — detaching from the shell's bottom edge
-     by a visible gap instead of sitting flush against it. */
+  /* Closed-state fallback only — half of the shell's own closed height
+     (min(34vh, 24.29vw), so half is min(17vh, 12.145vw)), matching
+     shellHeight's closed formula in imac-scroll-windows.tsx. While
+     animating, the standTop motion value there overrides this every
+     frame, tracking the shell's CURRENT (growing/shrinking) height
+     instead of just this resting value — needed once the stand started
+     staying visible through most of the resize instead of fading out
+     almost immediately. */
   top: calc(50% + min(17vh, 12.145vw));
   display: flex;
   flex-direction: column;
