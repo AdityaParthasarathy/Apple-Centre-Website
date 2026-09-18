@@ -68,7 +68,9 @@ export function ApplicationsManager({ initialApplications }: { initialApplicatio
   }
 
   if (applications.length === 0) {
-    return <p className="text-sm text-muted-foreground">No applications yet.</p>
+    return (
+      <p className="text-sm text-muted-foreground">No applications yet — check back once students start applying.</p>
+    )
   }
 
   return (
@@ -114,7 +116,7 @@ export function ApplicationsManager({ initialApplications }: { initialApplicatio
 
               <div className="flex shrink-0 items-center gap-2">
                 <Select value={app.status} onValueChange={(value) => updateStatus(app.id, value as ApplicationStatus)}>
-                  <SelectTrigger className="w-40 shrink-0">
+                  <SelectTrigger className="w-40 shrink-0" aria-label={`Status for ${app.name}`}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectPopup>
@@ -125,7 +127,13 @@ export function ApplicationsManager({ initialApplications }: { initialApplicatio
                     ))}
                   </SelectPopup>
                 </Select>
-                <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => setPendingDelete(app)} aria-label="Delete application">
+                <MotionButton
+                  variant="outline"
+                  size="icon-sm"
+                  className="size-11"
+                  onClick={() => setPendingDelete(app)}
+                  aria-label={`Delete ${app.name}'s application`}
+                >
                   <Trash2 className="h-3.5 w-3.5" />
                 </MotionButton>
               </div>
@@ -140,6 +148,7 @@ export function ApplicationsManager({ initialApplications }: { initialApplicatio
                         href={project.screenshot}
                         target="_blank"
                         rel="noopener noreferrer"
+                        aria-label={`View full-size screenshot for "${project.description}"`}
                         className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md border border-border"
                       >
                         <Image src={project.screenshot} alt="" fill className="object-cover" unoptimized />

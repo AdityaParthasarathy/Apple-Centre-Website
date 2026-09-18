@@ -61,7 +61,7 @@ export function AnnouncementsManager({ initialAnnouncements }: { initialAnnounce
       }
       cancelEdit()
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      const message = err instanceof Error ? err.message : "Couldn't save the announcement. Check your connection and try again."
       setError(message)
       toast.error(message)
     } finally {
@@ -119,12 +119,29 @@ export function AnnouncementsManager({ initialAnnouncements }: { initialAnnounce
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Title</label>
-            <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} />
+            <label htmlFor="announcementTitle" className="mb-1.5 block text-sm font-medium text-foreground">
+              Title
+            </label>
+            <input
+              id="announcementTitle"
+              required
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              className={inputClass}
+            />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Body</label>
-            <textarea required rows={3} value={form.body} onChange={(e) => setForm({ ...form, body: e.target.value })} className={inputClass} />
+            <label htmlFor="announcementBody" className="mb-1.5 block text-sm font-medium text-foreground">
+              Body
+            </label>
+            <textarea
+              id="announcementBody"
+              required
+              rows={3}
+              value={form.body}
+              onChange={(e) => setForm({ ...form, body: e.target.value })}
+              className={inputClass}
+            />
           </div>
           <div className="flex flex-wrap gap-6">
             <label className="flex items-center gap-2 text-sm text-foreground">
@@ -155,7 +172,9 @@ export function AnnouncementsManager({ initialAnnouncements }: { initialAnnounce
       </Card>
 
       <div className="space-y-3">
-        {announcements.length === 0 && <p className="text-sm text-muted-foreground">No announcements yet.</p>}
+        {announcements.length === 0 && (
+          <p className="text-sm text-muted-foreground">No announcements yet — post one using the form above.</p>
+        )}
         {announcements.map((item) => (
           <Card key={item.id} className="flex items-start justify-between gap-4 p-4">
             <div>
@@ -172,10 +191,22 @@ export function AnnouncementsManager({ initialAnnouncements }: { initialAnnounce
               <MotionButton variant="outline" size="sm" onClick={() => togglePublished(item)}>
                 {item.published ? 'Unpublish' : 'Publish'}
               </MotionButton>
-              <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => startEdit(item)} aria-label="Edit">
+              <MotionButton
+                variant="outline"
+                size="icon-sm"
+                className="size-11"
+                onClick={() => startEdit(item)}
+                aria-label={`Edit "${item.title}"`}
+              >
                 <Pencil className="h-3.5 w-3.5" />
               </MotionButton>
-              <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => setPendingDeleteId(item.id)} aria-label="Delete">
+              <MotionButton
+                variant="outline"
+                size="icon-sm"
+                className="size-11"
+                onClick={() => setPendingDeleteId(item.id)}
+                aria-label={`Delete "${item.title}"`}
+              >
                 <Trash2 className="h-3.5 w-3.5" />
               </MotionButton>
             </div>

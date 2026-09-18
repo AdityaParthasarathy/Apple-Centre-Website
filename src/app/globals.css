@@ -868,3 +868,8 @@ body:has(.imac-window-active) nav {
 .staff-logout-btn[data-loading='true'] .staff-logout-btn-text {
   opacity: 1;
 }
+
+.gallery-item:hover .gallery-item-overlay,
+.gallery-item:focus-within .gallery-item-overlay {
+  opacity: 1;
+}

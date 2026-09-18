@@ -68,7 +68,7 @@ export function TeamManager({ initialMembers }: { initialMembers: SheetTeamMembe
       }
       cancelEdit()
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      const message = err instanceof Error ? err.message : "Couldn't save the team member. Check your connection and try again."
       setError(message)
       toast.error(message)
     } finally {
@@ -110,12 +110,23 @@ export function TeamManager({ initialMembers }: { initialMembers: SheetTeamMembe
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Name</label>
-              <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} />
+              <label htmlFor="teamName" className="mb-1.5 block text-sm font-medium text-foreground">
+                Name
+              </label>
+              <input
+                id="teamName"
+                required
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                className={inputClass}
+              />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Role</label>
+              <label htmlFor="teamRole" className="mb-1.5 block text-sm font-medium text-foreground">
+                Role
+              </label>
               <input
+                id="teamRole"
                 required
                 placeholder="Faculty Coordinator, Apple Centre"
                 value={form.role}
@@ -125,14 +136,26 @@ export function TeamManager({ initialMembers }: { initialMembers: SheetTeamMembe
             </div>
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Bio</label>
-            <textarea required rows={3} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} className={inputClass} />
+            <label htmlFor="teamBio" className="mb-1.5 block text-sm font-medium text-foreground">
+              Bio
+            </label>
+            <textarea
+              id="teamBio"
+              required
+              rows={3}
+              value={form.bio}
+              onChange={(e) => setForm({ ...form, bio: e.target.value })}
+              className={inputClass}
+            />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <ImageUploadField label="Photo (optional)" value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Contact (optional)</label>
+              <label htmlFor="teamContact" className="mb-1.5 block text-sm font-medium text-foreground">
+                Contact (optional)
+              </label>
               <input
+                id="teamContact"
                 placeholder="email or link"
                 value={form.contact}
                 onChange={(e) => setForm({ ...form, contact: e.target.value })}
@@ -141,8 +164,11 @@ export function TeamManager({ initialMembers }: { initialMembers: SheetTeamMembe
             </div>
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Expertise (comma-separated, optional)</label>
+            <label htmlFor="teamExpertise" className="mb-1.5 block text-sm font-medium text-foreground">
+              Expertise (comma-separated, optional)
+            </label>
             <input
+              id="teamExpertise"
               placeholder="iOS, ARKit, Mentoring"
               value={form.expertise}
               onChange={(e) => setForm({ ...form, expertise: e.target.value })}
@@ -168,7 +194,9 @@ export function TeamManager({ initialMembers }: { initialMembers: SheetTeamMembe
       </Card>
 
       <div className="space-y-3">
-        {members.length === 0 && <p className="text-sm text-muted-foreground">No team members added yet.</p>}
+        {members.length === 0 && (
+          <p className="text-sm text-muted-foreground">No team members added yet — add one using the form above.</p>
+        )}
         {members.map((member) => (
           <Card key={member.id} className="flex items-start justify-between gap-4 p-4">
             <div>
@@ -176,10 +204,22 @@ export function TeamManager({ initialMembers }: { initialMembers: SheetTeamMembe
               <p className="text-sm text-muted-foreground">{member.role}</p>
             </div>
             <div className="flex shrink-0 gap-2">
-              <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => startEdit(member)} aria-label="Edit">
+              <MotionButton
+                variant="outline"
+                size="icon-sm"
+                className="size-11"
+                onClick={() => startEdit(member)}
+                aria-label={`Edit "${member.name}"`}
+              >
                 <Pencil className="h-3.5 w-3.5" />
               </MotionButton>
-              <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => setPendingDeleteId(member.id)} aria-label="Delete">
+              <MotionButton
+                variant="outline"
+                size="icon-sm"
+                className="size-11"
+                onClick={() => setPendingDeleteId(member.id)}
+                aria-label={`Delete "${member.name}"`}
+              >
                 <Trash2 className="h-3.5 w-3.5" />
               </MotionButton>
             </div>

@@ -79,7 +79,7 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
       }
       cancelEdit()
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      const message = err instanceof Error ? err.message : "Couldn't save the program. Check your connection and try again."
       setError(message)
       toast.error(message)
     } finally {
@@ -120,12 +120,23 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Title</label>
-            <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} />
+            <label htmlFor="programTitle" className="mb-1.5 block text-sm font-medium text-foreground">
+              Title
+            </label>
+            <input
+              id="programTitle"
+              required
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              className={inputClass}
+            />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Description</label>
+            <label htmlFor="programDescription" className="mb-1.5 block text-sm font-medium text-foreground">
+              Description
+            </label>
             <textarea
+              id="programDescription"
               required
               rows={3}
               value={form.description}
@@ -135,8 +146,11 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Duration</label>
+              <label htmlFor="programDuration" className="mb-1.5 block text-sm font-medium text-foreground">
+                Duration
+              </label>
               <input
+                id="programDuration"
                 required
                 placeholder="8 weeks"
                 value={form.duration}
@@ -145,14 +159,16 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Level</label>
+              <label htmlFor="programLevel" className="mb-1.5 block text-sm font-medium text-foreground">
+                Level
+              </label>
               <Select value={form.level} onValueChange={(value) => setForm({ ...form, level: value as SheetProgram['level'] })}>
-                <SelectTrigger>
+                <SelectTrigger id="programLevel" className="capitalize">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectPopup>
                   {LEVELS.map((l) => (
-                    <SelectItem key={l} value={l}>
+                    <SelectItem key={l} value={l} className="capitalize">
                       {l}
                     </SelectItem>
                   ))}
@@ -161,8 +177,11 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
             </div>
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Topics (comma-separated)</label>
+            <label htmlFor="programTopics" className="mb-1.5 block text-sm font-medium text-foreground">
+              Topics (comma-separated)
+            </label>
             <input
+              id="programTopics"
               placeholder="Swift, SwiftUI, Xcode"
               value={form.topics}
               onChange={(e) => setForm({ ...form, topics: e.target.value })}
@@ -189,7 +208,9 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
       </Card>
 
       <div className="space-y-3">
-        {programs.length === 0 && <p className="text-sm text-muted-foreground">No programs added yet.</p>}
+        {programs.length === 0 && (
+          <p className="text-sm text-muted-foreground">No programs added yet — add one using the form above.</p>
+        )}
         {programs.map((program) => (
           <Card key={program.id} className="flex items-start justify-between gap-4 p-4">
             <div>
@@ -202,10 +223,22 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
               <p className="mt-1 text-sm text-muted-foreground">{program.duration}</p>
             </div>
             <div className="flex shrink-0 gap-2">
-              <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => startEdit(program)} aria-label="Edit">
+              <MotionButton
+                variant="outline"
+                size="icon-sm"
+                className="size-11"
+                onClick={() => startEdit(program)}
+                aria-label={`Edit "${program.title}"`}
+              >
                 <Pencil className="h-3.5 w-3.5" />
               </MotionButton>
-              <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => setPendingDeleteId(program.id)} aria-label="Delete">
+              <MotionButton
+                variant="outline"
+                size="icon-sm"
+                className="size-11"
+                onClick={() => setPendingDeleteId(program.id)}
+                aria-label={`Delete "${program.title}"`}
+              >
                 <Trash2 className="h-3.5 w-3.5" />
               </MotionButton>
             </div>

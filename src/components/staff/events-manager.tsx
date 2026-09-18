@@ -101,7 +101,7 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
       }
       cancelEdit()
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      const message = err instanceof Error ? err.message : "Couldn't save the event. Check your connection and try again."
       setError(message)
       toast.error(message)
     } finally {
@@ -145,21 +145,31 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Title</label>
-              <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} />
+              <label htmlFor="eventTitle" className="mb-1.5 block text-sm font-medium text-foreground">
+                Title
+              </label>
+              <input
+                id="eventTitle"
+                required
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                className={inputClass}
+              />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Category</label>
+              <label htmlFor="eventCategory" className="mb-1.5 block text-sm font-medium text-foreground">
+                Category
+              </label>
               <Select
                 value={form.category}
                 onValueChange={(value) => setForm({ ...form, category: value as SheetEvent['category'] })}
               >
-                <SelectTrigger>
+                <SelectTrigger id="eventCategory" className="capitalize">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectPopup>
                   {CATEGORIES.map((c) => (
-                    <SelectItem key={c} value={c}>
+                    <SelectItem key={c} value={c} className="capitalize">
                       {c}
                     </SelectItem>
                   ))}
@@ -169,8 +179,11 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Description</label>
+            <label htmlFor="eventDescription" className="mb-1.5 block text-sm font-medium text-foreground">
+              Description
+            </label>
             <textarea
+              id="eventDescription"
               required
               rows={3}
               value={form.description}
@@ -181,12 +194,24 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
 
           <div className="grid gap-4 sm:grid-cols-3">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Date</label>
-              <input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className={inputClass} />
+              <label htmlFor="eventDate" className="mb-1.5 block text-sm font-medium text-foreground">
+                Date
+              </label>
+              <input
+                id="eventDate"
+                type="date"
+                required
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                className={inputClass}
+              />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Time</label>
+              <label htmlFor="eventTime" className="mb-1.5 block text-sm font-medium text-foreground">
+                Time
+              </label>
               <input
+                id="eventTime"
                 required
                 placeholder="2:00 PM – 5:00 PM"
                 value={form.time}
@@ -195,15 +220,32 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Capacity (optional)</label>
-              <input type="number" min={0} value={form.capacity} onChange={(e) => setForm({ ...form, capacity: e.target.value })} className={inputClass} />
+              <label htmlFor="eventCapacity" className="mb-1.5 block text-sm font-medium text-foreground">
+                Capacity (optional)
+              </label>
+              <input
+                id="eventCapacity"
+                type="number"
+                min={0}
+                value={form.capacity}
+                onChange={(e) => setForm({ ...form, capacity: e.target.value })}
+                className={inputClass}
+              />
             </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Location</label>
-              <input required value={form.location} onChange={(e) => setForm({ ...form, location: e.target.value })} className={inputClass} />
+              <label htmlFor="eventLocation" className="mb-1.5 block text-sm font-medium text-foreground">
+                Location
+              </label>
+              <input
+                id="eventLocation"
+                required
+                value={form.location}
+                onChange={(e) => setForm({ ...form, location: e.target.value })}
+                className={inputClass}
+              />
             </div>
             <ImageUploadField required value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
           </div>
@@ -245,7 +287,9 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
       </Card>
 
       <div className="space-y-3">
-        {sorted.length === 0 && <p className="text-sm text-muted-foreground">No events yet.</p>}
+        {sorted.length === 0 && (
+          <p className="text-sm text-muted-foreground">No events yet — add one using the form above.</p>
+        )}
         {sorted.map((event) => (
           <Card key={event.id} className="flex items-start justify-between gap-4 p-4">
             <div>
@@ -264,10 +308,22 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
               </p>
             </div>
             <div className="flex shrink-0 gap-2">
-              <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => startEdit(event)} aria-label="Edit">
+              <MotionButton
+                variant="outline"
+                size="icon-sm"
+                className="size-11"
+                onClick={() => startEdit(event)}
+                aria-label={`Edit "${event.title}"`}
+              >
                 <Pencil className="h-3.5 w-3.5" />
               </MotionButton>
-              <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => setPendingDeleteId(event.id)} aria-label="Delete">
+              <MotionButton
+                variant="outline"
+                size="icon-sm"
+                className="size-11"
+                onClick={() => setPendingDeleteId(event.id)}
+                aria-label={`Delete "${event.title}"`}
+              >
                 <Trash2 className="h-3.5 w-3.5" />
               </MotionButton>
             </div>

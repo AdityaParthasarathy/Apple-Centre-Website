@@ -80,7 +80,7 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
       }
       cancelEdit()
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      const message = err instanceof Error ? err.message : "Couldn't save the project. Check your connection and try again."
       setError(message)
       toast.error(message)
     } finally {
@@ -123,12 +123,23 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Title</label>
-            <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} />
+            <label htmlFor="projectTitle" className="mb-1.5 block text-sm font-medium text-foreground">
+              Title
+            </label>
+            <input
+              id="projectTitle"
+              required
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              className={inputClass}
+            />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Description</label>
+            <label htmlFor="projectDescription" className="mb-1.5 block text-sm font-medium text-foreground">
+              Description
+            </label>
             <textarea
+              id="projectDescription"
               required
               rows={3}
               value={form.description}
@@ -138,8 +149,11 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Team (comma-separated)</label>
+              <label htmlFor="projectTeam" className="mb-1.5 block text-sm font-medium text-foreground">
+                Team (comma-separated)
+              </label>
               <input
+                id="projectTeam"
                 placeholder="Ada Lovelace, Alan Turing"
                 value={form.team}
                 onChange={(e) => setForm({ ...form, team: e.target.value })}
@@ -147,8 +161,11 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Technologies (comma-separated)</label>
+              <label htmlFor="projectTechnologies" className="mb-1.5 block text-sm font-medium text-foreground">
+                Technologies (comma-separated)
+              </label>
               <input
+                id="projectTechnologies"
                 placeholder="Swift, SwiftUI, CoreML"
                 value={form.technologies}
                 onChange={(e) => setForm({ ...form, technologies: e.target.value })}
@@ -159,8 +176,16 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
           <div className="grid gap-4 sm:grid-cols-2">
             <ImageUploadField label="Photo (optional)" value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Link (optional)</label>
-              <input placeholder="https://…" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} className={inputClass} />
+              <label htmlFor="projectLink" className="mb-1.5 block text-sm font-medium text-foreground">
+                Link (optional)
+              </label>
+              <input
+                id="projectLink"
+                placeholder="https://…"
+                value={form.link}
+                onChange={(e) => setForm({ ...form, link: e.target.value })}
+                className={inputClass}
+              />
             </div>
           </div>
 
@@ -187,7 +212,9 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
       </Card>
 
       <div className="space-y-3">
-        {sorted.length === 0 && <p className="text-sm text-muted-foreground">No projects yet.</p>}
+        {sorted.length === 0 && (
+          <p className="text-sm text-muted-foreground">No projects yet — add one using the form above.</p>
+        )}
         {sorted.map((project) => (
           <Card key={project.id} className="flex items-start justify-between gap-4 p-4">
             <div>
@@ -198,10 +225,22 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
               <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{project.description}</p>
             </div>
             <div className="flex shrink-0 gap-2">
-              <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => startEdit(project)} aria-label="Edit">
+              <MotionButton
+                variant="outline"
+                size="icon-sm"
+                className="size-11"
+                onClick={() => startEdit(project)}
+                aria-label={`Edit "${project.title}"`}
+              >
                 <Pencil className="h-3.5 w-3.5" />
               </MotionButton>
-              <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => setPendingDeleteId(project.id)} aria-label="Delete">
+              <MotionButton
+                variant="outline"
+                size="icon-sm"
+                className="size-11"
+                onClick={() => setPendingDeleteId(project.id)}
+                aria-label={`Delete "${project.title}"`}
+              >
                 <Trash2 className="h-3.5 w-3.5" />
               </MotionButton>
             </div>

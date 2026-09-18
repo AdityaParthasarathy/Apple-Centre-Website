@@ -75,7 +75,7 @@ export function GalleryManager({ initialImages }: { initialImages: SheetGalleryI
       resetForm()
       toast.success('Photo uploaded')
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      const message = err instanceof Error ? err.message : "Couldn't upload the photo. Check your connection and try again."
       setError(message)
       toast.error(message)
     } finally {
@@ -110,12 +110,23 @@ export function GalleryManager({ initialImages }: { initialImages: SheetGalleryI
           <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-start">
             <div className="space-y-4">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Title</label>
-                <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} />
+                <label htmlFor="galleryTitle" className="mb-1.5 block text-sm font-medium text-foreground">
+                  Title
+                </label>
+                <input
+                  id="galleryTitle"
+                  required
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  className={inputClass}
+                />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Description</label>
+                <label htmlFor="galleryDescription" className="mb-1.5 block text-sm font-medium text-foreground">
+                  Description
+                </label>
                 <textarea
+                  id="galleryDescription"
                   rows={2}
                   value={form.description}
                   onChange={(e) => setForm({ ...form, description: e.target.value })}
@@ -123,14 +134,16 @@ export function GalleryManager({ initialImages }: { initialImages: SheetGalleryI
                 />
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Category</label>
+                <label htmlFor="galleryCategory" className="mb-1.5 block text-sm font-medium text-foreground">
+                  Category
+                </label>
                 <Select value={form.category} onValueChange={(value) => setForm({ ...form, category: value as SheetGalleryImage['category'] })}>
-                  <SelectTrigger>
+                  <SelectTrigger id="galleryCategory" className="capitalize">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectPopup>
                     {CATEGORIES.map((c) => (
-                      <SelectItem key={c} value={c}>
+                      <SelectItem key={c} value={c} className="capitalize">
                         {c}
                       </SelectItem>
                     ))}
@@ -140,7 +153,9 @@ export function GalleryManager({ initialImages }: { initialImages: SheetGalleryI
             </div>
 
             <div className="flex flex-col items-start gap-2">
-              <span className="text-sm font-medium text-foreground">Photo</span>
+              <label htmlFor="galleryPhotoInput" className="text-sm font-medium text-foreground">
+                Photo
+              </label>
               {preview ? (
                 <div className="relative h-32 w-32 overflow-hidden rounded-lg border border-border">
                   <Image src={preview} alt="Preview" fill className="object-cover" unoptimized />
@@ -149,18 +164,31 @@ export function GalleryManager({ initialImages }: { initialImages: SheetGalleryI
                 <motion.button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
+                  aria-label="Choose photo to upload"
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                   className="flex h-32 w-32 flex-col items-center justify-center gap-1.5 rounded-lg border border-dashed border-border text-muted-foreground transition-colors hover:border-ring hover:text-foreground"
                 >
-                  <Upload className="h-5 w-5" />
-                  <span className="text-xs">Choose file</span>
+                  <Upload className="h-5 w-5" aria-hidden="true" />
+                  <span className="text-xs" aria-hidden="true">Choose file</span>
                 </motion.button>
               )}
-              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+              <input
+                ref={fileInputRef}
+                id="galleryPhotoInput"
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
               {preview && (
-                <button type="button" onClick={() => fileInputRef.current?.click()} className="text-xs text-muted-foreground hover:text-foreground">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  aria-label="Change photo to upload"
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                >
                   Change photo
                 </button>
               )}
@@ -185,17 +213,19 @@ export function GalleryManager({ initialImages }: { initialImages: SheetGalleryI
       </Card>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-        {images.length === 0 && <p className="text-sm text-muted-foreground">No photos yet.</p>}
+        {images.length === 0 && (
+          <p className="text-sm text-muted-foreground">No photos yet — upload one using the form above.</p>
+        )}
         {images.map((image) => (
-          <div key={image.id} className="group relative h-40 overflow-hidden rounded-lg border border-border">
+          <div key={image.id} className="gallery-item relative h-40 overflow-hidden rounded-lg border border-border">
             <Image src={image.image} alt={image.title} fill className="object-cover" unoptimized />
-            <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-black/0 to-transparent p-3 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+            <div className="gallery-item-overlay absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-black/0 to-transparent p-3 opacity-0 transition-opacity duration-200">
               <p className="line-clamp-1 text-xs font-semibold text-white">{image.title}</p>
               <MotionButton
                 variant="outline"
                 size="icon-sm"
                 onClick={() => setPendingDeleteId(image.id)}
-                aria-label="Delete photo"
+                aria-label={`Delete "${image.title}"`}
                 className="absolute right-2 top-2 size-11 border-white/30 bg-black/40 text-white hover:bg-black/60"
               >
                 <Trash2 className="h-3.5 w-3.5" />

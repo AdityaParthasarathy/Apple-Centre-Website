@@ -61,7 +61,7 @@ export function FacilitiesManager({ initialFacilities }: { initialFacilities: Sh
       }
       cancelEdit()
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Something went wrong. Please try again.'
+      const message = err instanceof Error ? err.message : "Couldn't save the facility. Check your connection and try again."
       setError(message)
       toast.error(message)
     } finally {
@@ -102,12 +102,23 @@ export function FacilitiesManager({ initialFacilities }: { initialFacilities: Sh
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Title</label>
-            <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={inputClass} />
+            <label htmlFor="facilityTitle" className="mb-1.5 block text-sm font-medium text-foreground">
+              Title
+            </label>
+            <input
+              id="facilityTitle"
+              required
+              value={form.title}
+              onChange={(e) => setForm({ ...form, title: e.target.value })}
+              className={inputClass}
+            />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Description</label>
+            <label htmlFor="facilityDescription" className="mb-1.5 block text-sm font-medium text-foreground">
+              Description
+            </label>
             <textarea
+              id="facilityDescription"
               required
               rows={3}
               value={form.description}
@@ -137,7 +148,9 @@ export function FacilitiesManager({ initialFacilities }: { initialFacilities: Sh
       </Card>
 
       <div className="space-y-3">
-        {facilities.length === 0 && <p className="text-sm text-muted-foreground">No facilities added yet.</p>}
+        {facilities.length === 0 && (
+          <p className="text-sm text-muted-foreground">No facilities added yet — add one using the form above.</p>
+        )}
         {facilities.map((facility) => (
           <Card key={facility.id} className="flex items-start justify-between gap-4 p-4">
             <div>
@@ -145,10 +158,22 @@ export function FacilitiesManager({ initialFacilities }: { initialFacilities: Sh
               <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{facility.description}</p>
             </div>
             <div className="flex shrink-0 gap-2">
-              <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => startEdit(facility)} aria-label="Edit">
+              <MotionButton
+                variant="outline"
+                size="icon-sm"
+                className="size-11"
+                onClick={() => startEdit(facility)}
+                aria-label={`Edit "${facility.title}"`}
+              >
                 <Pencil className="h-3.5 w-3.5" />
               </MotionButton>
-              <MotionButton variant="outline" size="icon-sm" className="size-11" onClick={() => setPendingDeleteId(facility.id)} aria-label="Delete">
+              <MotionButton
+                variant="outline"
+                size="icon-sm"
+                className="size-11"
+                onClick={() => setPendingDeleteId(facility.id)}
+                aria-label={`Delete "${facility.title}"`}
+              >
                 <Trash2 className="h-3.5 w-3.5" />
               </MotionButton>
             </div>

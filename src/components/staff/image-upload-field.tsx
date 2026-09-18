@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import Image from 'next/image'
 import { motion } from 'motion/react'
 import { Upload } from 'lucide-react'
@@ -26,6 +26,7 @@ export function ImageUploadField({
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const inputId = useId()
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -50,9 +51,18 @@ export function ImageUploadField({
     }
   }
 
+  // Both buttons already carry their own dynamic, specific accessible name
+  // via aria-label (built from the `label` prop, e.g. "Choose Headshot
+  // photo" vs. "Choose Cover Image photo") — plain "Choose file" text
+  // would be indistinguishable from every other ImageUploadField on the
+  // same form. The visible text/icon are hidden from the accessibility
+  // tree so they don't get read as a second, conflicting name.
+  const chooseLabel = uploading ? `Uploading ${label.toLowerCase()}` : `Choose ${label.toLowerCase()}`
+  const changeLabel = uploading ? `Uploading ${label.toLowerCase()}` : `Change ${label.toLowerCase()}`
+
   return (
     <div>
-      <label className="mb-1.5 block text-sm font-medium text-foreground">
+      <label htmlFor={inputId} className="mb-1.5 block text-sm font-medium text-foreground">
         {label}
         {required && !value ? ' (required)' : ''}
       </label>
@@ -66,13 +76,14 @@ export function ImageUploadField({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
+            aria-label={chooseLabel}
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.97 }}
             transition={{ type: 'spring', stiffness: 400, damping: 20 }}
             className="flex h-20 w-20 shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border text-muted-foreground transition-colors hover:border-ring hover:text-foreground disabled:pointer-events-none disabled:opacity-70"
           >
-            <Upload className="h-4 w-4" />
-            <span className="text-[11px]">{uploading ? 'Uploading…' : 'Choose file'}</span>
+            <Upload className="h-4 w-4" aria-hidden="true" />
+            <span className="text-[11px]" aria-hidden="true">{uploading ? 'Uploading…' : 'Choose file'}</span>
           </motion.button>
         )}
         {value && (
@@ -80,13 +91,21 @@ export function ImageUploadField({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
+            aria-label={changeLabel}
             className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-70"
           >
-            {uploading ? 'Uploading…' : 'Change photo'}
+            <span aria-hidden="true">{uploading ? 'Uploading…' : 'Change photo'}</span>
           </button>
         )}
       </div>
-      <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+      <input
+        ref={fileInputRef}
+        id={inputId}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        className="hidden"
+      />
       {error && (
         <p className="mt-1.5 text-xs text-destructive" role="alert">
           {error}

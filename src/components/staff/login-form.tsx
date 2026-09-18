@@ -26,13 +26,13 @@ export function LoginForm() {
       const body = await res.json().catch(() => null)
 
       if (!res.ok) {
-        throw new Error(body?.error ?? 'Something went wrong. Please try again.')
+        throw new Error(body?.error ?? "Couldn't sign in. Check your email and password and try again.")
       }
 
       router.push('/staff')
       router.refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      setError(err instanceof Error ? err.message : "Couldn't sign in. Check your connection and try again.")
       setSubmitting(false)
     }
   }
