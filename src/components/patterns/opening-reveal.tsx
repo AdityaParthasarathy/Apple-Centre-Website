@@ -44,9 +44,12 @@ export function OpeningReveal({ onComplete }: OpeningRevealProps) {
       return
     }
 
-    // Dismisses itself automatically — this is a brief splash, not a
-    // gate the visitor has to act on. "Skip" below is only for people
-    // who don't want to wait even that long.
+    // The timer is a fallback for people who don't interact at all, not
+    // the primary way out — a view that *only* disappears on a clock,
+    // with no way to leave sooner, can strand someone who needs longer to
+    // read it. The whole backdrop (not just "Skip intro") is click-to-
+    // dismiss below, so acting on it early is always available and easy
+    // to find, not a small text link someone has to spot first.
     const timer = setTimeout(dismiss, AUTO_DISMISS_MS)
     return () => clearTimeout(timer)
   }, [handleComplete, dismiss])
@@ -60,7 +63,8 @@ export function OpeningReveal({ onComplete }: OpeningRevealProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-background"
+          onClick={dismiss}
+          className="fixed inset-0 z-50 flex cursor-pointer items-center justify-center bg-background"
         >
           <div className="relative flex flex-col items-center justify-center gap-6">
             <motion.div

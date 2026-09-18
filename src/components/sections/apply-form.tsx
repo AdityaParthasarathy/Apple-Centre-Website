@@ -104,7 +104,7 @@ function ProjectBlock({
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor={`project${n}SourceLink`} className="mb-1.5 block text-sm font-medium text-foreground">
-            Source / zip link
+            Source / Zip Link
           </label>
           <input
             id={`project${n}SourceLink`}
@@ -116,7 +116,7 @@ function ProjectBlock({
         </div>
         <div>
           <label htmlFor={`project${n}LiveLink`} className="mb-1.5 block text-sm font-medium text-foreground">
-            Live link <span className="font-normal text-muted-foreground">(if deployed)</span>
+            Live Link <span className="font-normal text-muted-foreground">(if deployed)</span>
           </label>
           <input
             id={`project${n}LiveLink`}
@@ -143,19 +143,21 @@ function ProjectBlock({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
+              aria-label={uploading ? `Processing screenshot for project ${n}` : `Choose screenshot for project ${n}`}
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               transition={{ type: 'spring', stiffness: 400, damping: 20 }}
               className="flex h-20 w-20 shrink-0 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-border text-muted-foreground transition-colors hover:border-ring hover:text-foreground disabled:pointer-events-none disabled:opacity-70"
             >
-              <Upload className="h-4 w-4" />
-              <span className="text-[11px]">{uploading ? 'Processing…' : 'Choose file'}</span>
+              <Upload className="h-4 w-4" aria-hidden="true" />
+              <span className="text-[11px]" aria-hidden="true">{uploading ? 'Processing…' : 'Choose file'}</span>
             </motion.button>
           )}
           {screenshot && (
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
+              aria-label={`Change screenshot for project ${n}`}
               className="text-xs text-muted-foreground hover:text-foreground"
             >
               Change photo
@@ -218,12 +220,12 @@ export function ApplyForm() {
 
       if (!res.ok) {
         const body = await res.json().catch(() => null)
-        throw new Error(body?.error ?? 'Something went wrong. Please try again.')
+        throw new Error(body?.error ?? "Couldn't submit your application. Check your connection and try again.")
       }
 
       setSubmitted(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.')
+      setError(err instanceof Error ? err.message : "Couldn't submit your application. Check your connection and try again.")
     } finally {
       setSubmitting(false)
     }
@@ -307,10 +309,10 @@ export function ApplyForm() {
       </div>
 
       <div>
-        <span className="mb-1.5 block text-sm font-medium text-foreground">
+        <span id="techComfortLabel" className="mb-1.5 block text-sm font-medium text-foreground">
           How comfortable are you with your primary tech stack?
         </span>
-        <RadioCardGroup name="techComfort" options={TECH_COMFORT_OPTIONS} />
+        <RadioCardGroup name="techComfort" options={TECH_COMFORT_OPTIONS} ariaLabelledby="techComfortLabel" />
       </div>
 
       <div>
@@ -322,13 +324,14 @@ export function ApplyForm() {
             type="button"
             onClick={() => resumeInputRef.current?.click()}
             disabled={resumeUploading}
+            aria-label={resumeUploading ? 'Processing résumé' : resume ? 'Change résumé file' : 'Choose résumé file'}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             transition={{ type: 'spring', stiffness: 400, damping: 20 }}
             className="flex items-center gap-2 rounded-lg border border-dashed border-border px-4 py-2.5 text-sm text-muted-foreground transition-colors hover:border-ring hover:text-foreground disabled:pointer-events-none disabled:opacity-70"
           >
-            <Upload className="h-4 w-4" />
-            {resumeUploading ? 'Processing…' : resume ? 'Change file' : 'Choose file'}
+            <Upload className="h-4 w-4" aria-hidden="true" />
+            <span aria-hidden="true">{resumeUploading ? 'Processing…' : resume ? 'Change file' : 'Choose file'}</span>
           </motion.button>
           {resume && !resumeUploading && (
             <span className="flex items-center gap-1.5 text-sm text-foreground">

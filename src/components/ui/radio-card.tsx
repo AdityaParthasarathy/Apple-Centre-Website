@@ -15,14 +15,20 @@ export function RadioCardGroup({
   options,
   defaultValue,
   className,
+  ariaLabelledby,
 }: {
   name: string
   options: RadioCardOption[]
   defaultValue?: string
   className?: string
+  /** id of the element asking the question this group answers — a
+   *  role="radiogroup" has no accessible name of its own, so without this
+   *  a screen reader announces the options with no idea what they're
+   *  choosing between. */
+  ariaLabelledby: string
 }) {
   return (
-    <div className={cn('space-y-2', className)} role="radiogroup">
+    <div className={cn('space-y-2', className)} role="radiogroup" aria-labelledby={ariaLabelledby}>
       {options.map((option) => (
         <label
           key={option.value}
