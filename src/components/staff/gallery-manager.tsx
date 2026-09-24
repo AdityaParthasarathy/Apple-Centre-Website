@@ -10,7 +10,8 @@ import { MotionButton } from '@/components/patterns/motion-link'
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/components/ui/select'
 import { compressImage } from '@/lib/image-compress'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
-import { inputClass } from '@/lib/utils'
+import { tempId, useLatest, useOptimisticList } from '@/hooks/use-optimistic-list'
+import { inputClass, cardImage } from '@/lib/utils'
 import type { SheetGalleryImage } from '@/lib/sheet-types'
 
 const CATEGORIES: SheetGalleryImage['category'][] = ['workshop', 'event', 'facility', 'community']
@@ -19,13 +20,18 @@ const EMPTY_FORM = { title: '', description: '', category: 'event' as SheetGalle
 type FormState = typeof EMPTY_FORM
 
 export function GalleryManager({ initialImages }: { initialImages: SheetGalleryImage[] }) {
-  const [images, setImages] = useState(initialImages)
+  const list = useOptimisticList<SheetGalleryImage>(initialImages, {
+    endpoint: '/api/staff/gallery',
+    itemKey: 'image',
+    noun: 'photo',
+  })
+  const images = list.items
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [preview, setPreview] = useState<string | null>(null)
   const [pending, setPending] = useState<{ base64: string; mimeType: string } | null>(null)
-  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const pendingRef = useLatest(pending)
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -53,35 +59,42 @@ export function GalleryManager({ initialImages }: { initialImages: SheetGalleryI
       setError('Choose a photo to upload.')
       return
     }
-    setSubmitting(true)
     setError(null)
 
-    try {
-      const res = await fetch('/api/staff/gallery', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: form.title,
-          description: form.description,
-          category: form.category,
-          base64: pending.base64,
-          mimeType: pending.mimeType,
-          filename: `${form.title || 'photo'}.jpg`,
-        }),
-      })
-      const body = await res.json().catch(() => null)
-      // No JSON body means the failure came from the hosting platform (for
-      // example the request ran out of time), not from our own route.
-      if (!res.ok) throw new Error(body?.error ?? `The upload didn't finish (error ${res.status}). Please try again.`)
-      if (body?.image) setImages((prev) => [body.image as SheetGalleryImage, ...prev])
-      resetForm()
+    const snapshot = { form, pending, preview }
+    const payload = {
+      title: form.title,
+      description: form.description,
+      category: form.category,
+      base64: pending.base64,
+      mimeType: pending.mimeType,
+      filename: `${form.title || 'photo'}.jpg`,
+    }
+    // The tile appears at once, showing the picture itself, while the upload
+    // to Drive finishes behind it.
+    const draft: SheetGalleryImage = {
+      id: tempId(),
+      title: form.title,
+      description: form.description,
+      category: form.category,
+      image: preview ?? '',
+      date: new Date().toISOString().slice(0, 10),
+      createdAt: new Date().toISOString(),
+    }
+    resetForm()
+
+    const result = await list.add(payload, draft)
+    if (result.ok) {
       toast.success('Photo uploaded')
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Couldn't upload the photo. Check your connection and try again."
-      setError(message)
-      toast.error(message)
-    } finally {
-      setSubmitting(false)
+    } else {
+      // Hand the form its typing back — unless they have already chosen another photo.
+      if (pendingRef.current === null) {
+        setForm(snapshot.form)
+        setPending(snapshot.pending)
+        setPreview(snapshot.preview)
+      }
+      setError(result.message)
+      toast.error(result.message)
     }
   }
 
@@ -91,16 +104,12 @@ export function GalleryManager({ initialImages }: { initialImages: SheetGalleryI
     const id = pendingDeleteId
     setPendingDeleteId(null)
     if (!id) return
-    try {
-      const res = await fetch(`/api/staff/gallery/${id}`, { method: 'DELETE' })
-      const body = await res.json().catch(() => null)
-      if (!res.ok) throw new Error(body?.error ?? 'Failed to delete the photo.')
-      setImages((prev) => prev.filter((img) => img.id !== id))
+    const result = await list.remove(id)
+    if (result.ok) {
       toast.success('Photo deleted')
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete the photo.'
-      setError(message)
-      toast.error(message)
+    } else {
+      setError(result.message)
+      toast.error(result.message)
     }
   }
 
@@ -203,13 +212,8 @@ export function GalleryManager({ initialImages }: { initialImages: SheetGalleryI
             </p>
           )}
 
-          <MotionButton
-            type="submit"
-            size="lg"
-            disabled={submitting}
-            className="disabled:pointer-events-none disabled:opacity-80"
-          >
-            {submitting ? 'Uploading…' : 'Upload photo'}
+          <MotionButton type="submit" size="lg">
+            Upload photo
           </MotionButton>
         </form>
       </Card>
@@ -218,15 +222,23 @@ export function GalleryManager({ initialImages }: { initialImages: SheetGalleryI
         {images.length === 0 && (
           <p className="text-sm text-muted-foreground">No photos yet — upload one using the form above.</p>
         )}
-        {images.map((image) => (
-          <div key={image.id} className="gallery-item relative h-40 overflow-hidden rounded-lg border border-border">
-            <Image src={image.image} alt={image.title} fill className="object-cover" unoptimized />
+        {images.map((image) => {
+          const saving = list.pending.has(image.id)
+          return (
+          <div key={image.id} className="gallery-item relative h-40 overflow-hidden rounded-lg border border-border" aria-busy={saving}>
+            <Image src={cardImage(image.image, 480)} alt={image.title} fill className={`object-cover ${saving ? 'opacity-60' : ''}`} unoptimized />
+            {saving && (
+              <span className="absolute left-2 top-2 rounded bg-black/70 px-2 py-0.5 text-xs font-medium text-white">
+                Uploading…
+              </span>
+            )}
             <div className="gallery-item-overlay absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-black/0 to-transparent p-3 opacity-0 transition-opacity duration-200">
               <p className="line-clamp-1 text-xs font-semibold text-white">{image.title}</p>
               <MotionButton
                 variant="outline"
                 size="icon-sm"
                 onClick={() => setPendingDeleteId(image.id)}
+                disabled={saving}
                 aria-label={`Delete "${image.title}"`}
                 className="absolute right-2 top-2 size-11 border-white/30 bg-black/40 text-white hover:bg-black/60"
               >
@@ -234,7 +246,8 @@ export function GalleryManager({ initialImages }: { initialImages: SheetGalleryI
               </MotionButton>
             </div>
           </div>
-        ))}
+          )
+        })}
       </div>
 
       <ConfirmDialog

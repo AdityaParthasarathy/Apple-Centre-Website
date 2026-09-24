@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge'
 import { MotionButton } from '@/components/patterns/motion-link'
 import { ImageUploadField } from '@/components/staff/image-upload-field'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
-import { inputClass, isExternalImage } from '@/lib/utils'
+import { tempId, useLatest, useOptimisticList } from '@/hooks/use-optimistic-list'
+import { inputClass, isExternalImage, cardImage } from '@/lib/utils'
 import type { SheetAchievement } from '@/lib/sheet-types'
 
 const EMPTY_FORM = {
@@ -26,11 +27,16 @@ type FormState = typeof EMPTY_FORM
 const PLACEMENT_SUGGESTIONS = ['1st Prize', '2nd Prize', '3rd Prize', 'Special Award']
 
 export function AchievementsManager({ initialAchievements }: { initialAchievements: SheetAchievement[] }) {
-  const [achievements, setAchievements] = useState(initialAchievements)
+  const list = useOptimisticList<SheetAchievement>(initialAchievements, {
+    endpoint: '/api/staff/achievements',
+    itemKey: 'achievement',
+    noun: 'achievement',
+  })
+  const achievements = list.items
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const formRef = useLatest(form)
 
   const startEdit = (achievement: SheetAchievement) => {
     setEditingId(achievement.id)
@@ -50,43 +56,34 @@ export function AchievementsManager({ initialAchievements }: { initialAchievemen
     setError(null)
   }
 
+  // A save that Google ends up refusing hands the form its typing back —
+  // unless they have already started on something else in the meantime.
+  const restoreForm = (snapshot: FormState, editing: string | null, message: string) => {
+    if (JSON.stringify(formRef.current) === JSON.stringify(EMPTY_FORM)) {
+      setForm(snapshot)
+      setEditingId(editing)
+    }
+    setError(message)
+    toast.error(message)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitting(true)
-    setError(null)
-
     const payload = { ...form }
+    const snapshot = form
+    const editing = editingId
+    // The form clears and the list changes at once; the save finishes behind it.
+    cancelEdit()
 
-    try {
-      if (editingId) {
-        const res = await fetch(`/api/staff/achievements/${editingId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        const body = await res.json().catch(() => null)
-        if (!res.ok) throw new Error(body?.error ?? 'Failed to update the achievement.')
-        setAchievements((prev) => prev.map((a) => (a.id === editingId ? { ...a, ...payload, id: editingId } : a)))
-        toast.success('Achievement updated')
-      } else {
-        const res = await fetch('/api/staff/achievements', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        const body = await res.json().catch(() => null)
-        if (!res.ok) throw new Error(body?.error ?? 'Failed to save the achievement.')
-        if (body?.achievement) setAchievements((prev) => [body.achievement as SheetAchievement, ...prev])
-        toast.success('Achievement added')
-      }
-      cancelEdit()
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Couldn't save the achievement. Check your connection and try again."
-      setError(message)
-      toast.error(message)
-    } finally {
-      setSubmitting(false)
+    if (editing) {
+      const previous = achievements.find((a) => a.id === editing)
+      const result = await list.update(editing, payload, { ...previous, ...payload, id: editing })
+      if (result.ok) toast.success('Achievement updated')
+      else restoreForm(snapshot, editing, result.message)
+    } else {
+      const result = await list.add(payload, { ...payload, id: tempId(), createdAt: new Date().toISOString() })
+      if (result.ok) toast.success('Achievement added')
+      else restoreForm(snapshot, null, result.message)
     }
   }
 
@@ -96,17 +93,13 @@ export function AchievementsManager({ initialAchievements }: { initialAchievemen
     const id = pendingDeleteId
     setPendingDeleteId(null)
     if (!id) return
-    try {
-      const res = await fetch(`/api/staff/achievements/${id}`, { method: 'DELETE' })
-      const body = await res.json().catch(() => null)
-      if (!res.ok) throw new Error(body?.error ?? 'Failed to delete the achievement.')
-      setAchievements((prev) => prev.filter((a) => a.id !== id))
-      if (editingId === id) cancelEdit()
+    if (editingId === id) cancelEdit()
+    const result = await list.remove(id)
+    if (result.ok) {
       toast.success('Achievement deleted')
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete the achievement.'
-      setError(message)
-      toast.error(message)
+    } else {
+      setError(result.message)
+      toast.error(result.message)
     }
   }
 
@@ -193,13 +186,8 @@ export function AchievementsManager({ initialAchievements }: { initialAchievemen
             </p>
           )}
 
-          <MotionButton
-            type="submit"
-            size="lg"
-            disabled={submitting}
-            className="disabled:pointer-events-none disabled:opacity-80"
-          >
-            {submitting ? 'Saving…' : editingId ? 'Save changes' : 'Add achievement'}
+          <MotionButton type="submit" size="lg">
+            {editingId ? 'Save changes' : 'Add achievement'}
           </MotionButton>
         </form>
       </Card>
@@ -211,13 +199,15 @@ export function AchievementsManager({ initialAchievements }: { initialAchievemen
             using the form above.
           </p>
         )}
-        {achievements.map((achievement) => (
-          <Card key={achievement.id} className="flex items-start justify-between gap-4 p-4">
+        {achievements.map((achievement) => {
+          const saving = list.pending.has(achievement.id)
+          return (
+          <Card key={achievement.id} className={`flex items-start justify-between gap-4 p-4 ${saving ? 'opacity-70' : ''}`} aria-busy={saving}>
             <div className="flex min-w-0 items-start gap-3">
               {achievement.image && (
                 <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-border">
                   <Image
-                    src={achievement.image}
+                    src={cardImage(achievement.image, 200)}
                     alt=""
                     fill
                     className="object-cover"
@@ -229,6 +219,7 @@ export function AchievementsManager({ initialAchievements }: { initialAchievemen
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="font-semibold text-foreground">{achievement.title}</p>
                   <Badge variant="accent" className="text-xs">{achievement.placement}</Badge>
+                  {saving && <Badge variant="muted" className="text-xs">Saving…</Badge>}
                 </div>
                 {achievement.institution && (
                   <p className="mt-0.5 text-sm text-muted-foreground">{achievement.institution}</p>
@@ -244,6 +235,7 @@ export function AchievementsManager({ initialAchievements }: { initialAchievemen
                 size="icon-sm"
                 className="size-11"
                 onClick={() => startEdit(achievement)}
+                disabled={saving}
                 aria-label={`Edit "${achievement.title}"`}
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -253,13 +245,15 @@ export function AchievementsManager({ initialAchievements }: { initialAchievemen
                 size="icon-sm"
                 className="size-11"
                 onClick={() => setPendingDeleteId(achievement.id)}
+                disabled={saving}
                 aria-label={`Delete "${achievement.title}"`}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </MotionButton>
             </div>
           </Card>
-        ))}
+          )
+        })}
       </div>
 
       <ConfirmDialog

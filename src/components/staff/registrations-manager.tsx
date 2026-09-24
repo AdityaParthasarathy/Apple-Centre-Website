@@ -1,12 +1,13 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Download, RefreshCw, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { MotionButton } from '@/components/patterns/motion-link'
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/components/ui/select'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
+import { useOptimisticList } from '@/hooks/use-optimistic-list'
 import type { SheetRegistration } from '@/lib/sheet-types'
 
 const ALL = 'all'
@@ -38,7 +39,16 @@ function download(filename: string, content: string) {
 }
 
 export function RegistrationsManager({ initialRegistrations }: { initialRegistrations: SheetRegistration[] }) {
-  const [registrations, setRegistrations] = useState(initialRegistrations)
+  const list = useOptimisticList<SheetRegistration>(initialRegistrations, {
+    endpoint: '/api/staff/registrations',
+    itemKey: 'registration',
+    noun: 'registration',
+  })
+  const registrations = list.items
+  const { setItems: setRegistrations } = list
+  // The page opens straight away on the last cached list; this pulls the
+  // newest one in behind it (see the effect below).
+  const [syncing, setSyncing] = useState(true)
   const [eventFilter, setEventFilter] = useState(ALL)
   const [refreshing, setRefreshing] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
@@ -66,6 +76,25 @@ export function RegistrationsManager({ initialRegistrations }: { initialRegistra
     return event ? `${event.title} (${event.count})` : value
   }
 
+  // Signups come in continuously, so the list is never trusted to be current.
+  // Rather than make the page wait on Google for the fresh copy, it renders at
+  // once from the cache and swaps the newest one in when it arrives.
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/staff/registrations')
+      .then(async (res) => ({ ok: res.ok, body: await res.json().catch(() => null) }))
+      .then(({ ok, body }) => {
+        if (!cancelled && ok && Array.isArray(body?.items)) setRegistrations(body.items as SheetRegistration[])
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setSyncing(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [setRegistrations])
+
   const refresh = async () => {
     setRefreshing(true)
     try {
@@ -92,15 +121,9 @@ export function RegistrationsManager({ initialRegistrations }: { initialRegistra
     const id = pendingDeleteId
     setPendingDeleteId(null)
     if (!id) return
-    try {
-      const res = await fetch(`/api/staff/registrations/${id}`, { method: 'DELETE' })
-      const body = await res.json().catch(() => null)
-      if (!res.ok) throw new Error(body?.error ?? 'Failed to delete the registration.')
-      setRegistrations((prev) => prev.filter((r) => r.id !== id))
-      toast.success('Registration removed')
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to delete the registration.')
-    }
+    const result = await list.remove(id)
+    if (result.ok) toast.success('Registration removed')
+    else toast.error(result.message)
   }
 
   const pendingDelete = registrations.find((r) => r.id === pendingDeleteId)
@@ -126,7 +149,8 @@ export function RegistrationsManager({ initialRegistrations }: { initialRegistra
             </SelectPopup>
           </Select>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {syncing && <span className="text-xs text-muted-foreground">Checking for new sign-ups…</span>}
           <MotionButton variant="outline" onClick={refresh} disabled={refreshing} className="gap-2">
             <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
             {refreshing ? 'Refreshing…' : 'Refresh'}

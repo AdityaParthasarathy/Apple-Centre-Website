@@ -5,7 +5,7 @@ import Image from 'next/image'
 import { motion } from 'motion/react'
 import { Upload } from 'lucide-react'
 import { compressImage } from '@/lib/image-compress'
-import { isExternalImage } from '@/lib/utils'
+import { isExternalImage, cardImage } from '@/lib/utils'
 
 /** A "choose a photo" field that uploads straight to Drive and hands back a
  *  URL — used anywhere a content type just needs one image (Events,
@@ -92,7 +92,7 @@ export function ImageUploadField({
       <div className="flex items-center gap-3">
         {value ? (
           <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border border-border">
-            <Image src={value} alt="" fill className="object-cover" unoptimized={isExternalImage(value)} />
+            <Image src={cardImage(value, 240)} alt="" fill className="object-cover" unoptimized={isExternalImage(value)} />
           </div>
         ) : (
           <motion.button

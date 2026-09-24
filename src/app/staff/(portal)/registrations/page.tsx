@@ -7,9 +7,12 @@ export const metadata: Metadata = {
   title: 'Registrations | Faculty Portal',
 }
 
+// Read from the cache (up to a minute old) so the page opens instantly instead of
+// waiting on Google; RegistrationsManager fetches the newest list right after it
+// renders.
 async function loadRegistrations(): Promise<{ registrations: SheetRegistration[]; error: string | null }> {
   try {
-    const result = await callAppsScript<{ items: SheetRegistration[] }>('listRegistrations', {}, { fresh: true })
+    const result = await callAppsScript<{ items: SheetRegistration[] }>('listRegistrations')
     return { registrations: result.items, error: null }
   } catch (error) {
     return {

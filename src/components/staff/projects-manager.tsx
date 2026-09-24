@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { MotionButton } from '@/components/patterns/motion-link'
 import { ImageUploadField } from '@/components/staff/image-upload-field'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
+import { tempId, useLatest, useOptimisticList } from '@/hooks/use-optimistic-list'
 import { inputClass } from '@/lib/utils'
 import type { SheetProject } from '@/lib/sheet-types'
 
@@ -23,11 +24,17 @@ const EMPTY_FORM = {
 type FormState = typeof EMPTY_FORM
 
 export function ProjectsManager({ initialProjects }: { initialProjects: SheetProject[] }) {
-  const [projects, setProjects] = useState(initialProjects)
+  const list = useOptimisticList<SheetProject>(initialProjects, {
+    endpoint: '/api/staff/projects',
+    itemKey: 'project',
+    noun: 'project',
+    addAt: 'end',
+  })
+  const projects = list.items
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const formRef = useLatest(form)
 
   const startEdit = (project: SheetProject) => {
     setEditingId(project.id)
@@ -49,42 +56,34 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
     setError(null)
   }
 
+  // A save that Google ends up refusing hands the form its typing back —
+  // unless they have already started on something else in the meantime.
+  const restoreForm = (snapshot: FormState, editing: string | null, message: string) => {
+    if (JSON.stringify(formRef.current) === JSON.stringify(EMPTY_FORM)) {
+      setForm(snapshot)
+      setEditingId(editing)
+    }
+    setError(message)
+    toast.error(message)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitting(true)
-    setError(null)
-
     const payload = { ...form }
+    const snapshot = form
+    const editing = editingId
+    // The form clears and the list changes at once; the save finishes behind it.
+    cancelEdit()
 
-    try {
-      if (editingId) {
-        const res = await fetch(`/api/staff/projects/${editingId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        const body = await res.json().catch(() => null)
-        if (!res.ok) throw new Error(body?.error ?? 'Failed to update the project.')
-        setProjects((prev) => prev.map((p) => (p.id === editingId ? { ...p, ...payload, id: editingId } : p)))
-        toast.success('Project updated')
-      } else {
-        const res = await fetch('/api/staff/projects', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        const body = await res.json().catch(() => null)
-        if (!res.ok) throw new Error(body?.error ?? 'Failed to save the project.')
-        if (body?.project) setProjects((prev) => [...prev, body.project as SheetProject])
-        toast.success('Project added')
-      }
-      cancelEdit()
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Couldn't save the project. Check your connection and try again."
-      setError(message)
-      toast.error(message)
-    } finally {
-      setSubmitting(false)
+    if (editing) {
+      const previous = projects.find((x) => x.id === editing)
+      const result = await list.update(editing, payload, { ...previous, ...payload, id: editing } as SheetProject)
+      if (result.ok) toast.success('Project updated')
+      else restoreForm(snapshot, editing, result.message)
+    } else {
+      const result = await list.add(payload, { ...payload, id: tempId(), createdAt: new Date().toISOString() } as SheetProject)
+      if (result.ok) toast.success('Project added')
+      else restoreForm(snapshot, null, result.message)
     }
   }
 
@@ -94,17 +93,13 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
     const id = pendingDeleteId
     setPendingDeleteId(null)
     if (!id) return
-    try {
-      const res = await fetch(`/api/staff/projects/${id}`, { method: 'DELETE' })
-      const body = await res.json().catch(() => null)
-      if (!res.ok) throw new Error(body?.error ?? 'Failed to delete the project.')
-      setProjects((prev) => prev.filter((p) => p.id !== id))
-      if (editingId === id) cancelEdit()
+    if (editingId === id) cancelEdit()
+    const result = await list.remove(id)
+    if (result.ok) {
       toast.success('Project deleted')
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete the project.'
-      setError(message)
-      toast.error(message)
+    } else {
+      setError(result.message)
+      toast.error(result.message)
     }
   }
 
@@ -200,13 +195,8 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
             </p>
           )}
 
-          <MotionButton
-            type="submit"
-            size="lg"
-            disabled={submitting}
-            className="disabled:pointer-events-none disabled:opacity-80"
-          >
-            {submitting ? 'Saving…' : editingId ? 'Save changes' : 'Add project'}
+          <MotionButton type="submit" size="lg">
+            {editingId ? 'Save changes' : 'Add project'}
           </MotionButton>
         </form>
       </Card>
@@ -215,11 +205,14 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
         {sorted.length === 0 && (
           <p className="text-sm text-muted-foreground">No projects yet — add one using the form above.</p>
         )}
-        {sorted.map((project) => (
-          <Card key={project.id} className="flex items-start justify-between gap-4 p-4">
+        {sorted.map((project) => {
+          const saving = list.pending.has(project.id)
+          return (
+          <Card key={project.id} className={`flex items-start justify-between gap-4 p-4 ${saving ? 'opacity-70' : ''}`} aria-busy={saving}>
             <div>
               <div className="flex items-center gap-2">
                 <p className="font-semibold text-foreground">{project.title}</p>
+                {saving && <span className="text-xs text-muted-foreground">Saving…</span>}
                 {project.featured && <Badge variant="accent" className="text-xs">Featured</Badge>}
               </div>
               <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{project.description}</p>
@@ -230,6 +223,7 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
                 size="icon-sm"
                 className="size-11"
                 onClick={() => startEdit(project)}
+                disabled={saving}
                 aria-label={`Edit "${project.title}"`}
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -239,13 +233,15 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
                 size="icon-sm"
                 className="size-11"
                 onClick={() => setPendingDeleteId(project.id)}
+                disabled={saving}
                 aria-label={`Delete "${project.title}"`}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </MotionButton>
             </div>
           </Card>
-        ))}
+          )
+        })}
       </div>
 
       <ConfirmDialog

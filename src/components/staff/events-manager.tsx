@@ -9,6 +9,7 @@ import { MotionButton } from '@/components/patterns/motion-link'
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/components/ui/select'
 import { ImageUploadField } from '@/components/staff/image-upload-field'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
+import { tempId, useLatest, useOptimisticList } from '@/hooks/use-optimistic-list'
 import { inputClass } from '@/lib/utils'
 import { formatTimeRange, parseTimeRange } from '@/lib/event-time'
 import type { SheetEvent } from '@/lib/sheet-types'
@@ -32,11 +33,17 @@ const EMPTY_FORM = {
 type FormState = typeof EMPTY_FORM
 
 export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }) {
-  const [events, setEvents] = useState(initialEvents)
+  const list = useOptimisticList<SheetEvent>(initialEvents, {
+    endpoint: '/api/staff/events',
+    itemKey: 'event',
+    noun: 'event',
+    addAt: 'end',
+  })
+  const events = list.items
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const formRef = useLatest(form)
 
   const startEdit = (event: SheetEvent) => {
     setEditingId(event.id)
@@ -62,6 +69,17 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
     setError(null)
   }
 
+  // A save that Google ends up refusing hands the form its typing back —
+  // unless they have already started on something else in the meantime.
+  const restoreForm = (snapshot: FormState, editing: string | null, message: string) => {
+    if (JSON.stringify(formRef.current) === JSON.stringify(EMPTY_FORM)) {
+      setForm(snapshot)
+      setEditingId(editing)
+    }
+    setError(message)
+    toast.error(message)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -69,8 +87,6 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
       setError('The end time must be after the start time.')
       return
     }
-    setSubmitting(true)
-
     const payload = {
       title: form.title,
       description: form.description,
@@ -83,36 +99,20 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
       published: form.published,
       pinned: form.pinned,
     }
+    const snapshot = form
+    const editing = editingId
+    // The form clears and the list changes at once; the save finishes behind it.
+    cancelEdit()
 
-    try {
-      if (editingId) {
-        const res = await fetch(`/api/staff/events/${editingId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        const body = await res.json().catch(() => null)
-        if (!res.ok) throw new Error(body?.error ?? 'Failed to update the event.')
-        setEvents((prev) => prev.map((ev) => (ev.id === editingId ? { ...ev, ...payload, id: editingId } : ev)))
-        toast.success('Event updated')
-      } else {
-        const res = await fetch('/api/staff/events', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
-        })
-        const body = await res.json().catch(() => null)
-        if (!res.ok) throw new Error(body?.error ?? 'Failed to save the event.')
-        if (body?.event) setEvents((prev) => [...prev, body.event as SheetEvent])
-        toast.success('Event added')
-      }
-      cancelEdit()
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Couldn't save the event. Check your connection and try again."
-      setError(message)
-      toast.error(message)
-    } finally {
-      setSubmitting(false)
+    if (editing) {
+      const previous = events.find((x) => x.id === editing)
+      const result = await list.update(editing, payload, { ...previous, ...payload, id: editing } as SheetEvent)
+      if (result.ok) toast.success('Event updated')
+      else restoreForm(snapshot, editing, result.message)
+    } else {
+      const result = await list.add(payload, { ...payload, id: tempId(), createdAt: new Date().toISOString() } as SheetEvent)
+      if (result.ok) toast.success('Event added')
+      else restoreForm(snapshot, null, result.message)
     }
   }
 
@@ -122,17 +122,13 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
     const id = pendingDeleteId
     setPendingDeleteId(null)
     if (!id) return
-    try {
-      const res = await fetch(`/api/staff/events/${id}`, { method: 'DELETE' })
-      const body = await res.json().catch(() => null)
-      if (!res.ok) throw new Error(body?.error ?? 'Failed to delete the event.')
-      setEvents((prev) => prev.filter((ev) => ev.id !== id))
-      if (editingId === id) cancelEdit()
+    if (editingId === id) cancelEdit()
+    const result = await list.remove(id)
+    if (result.ok) {
       toast.success('Event deleted')
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete the event.'
-      setError(message)
-      toast.error(message)
+    } else {
+      setError(result.message)
+      toast.error(result.message)
     }
   }
 
@@ -300,13 +296,8 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
             </p>
           )}
 
-          <MotionButton
-            type="submit"
-            size="lg"
-            disabled={submitting}
-            className="disabled:pointer-events-none disabled:opacity-80"
-          >
-            {submitting ? 'Saving…' : editingId ? 'Save changes' : 'Add event'}
+          <MotionButton type="submit" size="lg">
+            {editingId ? 'Save changes' : 'Add event'}
           </MotionButton>
         </form>
       </Card>
@@ -315,11 +306,14 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
         {sorted.length === 0 && (
           <p className="text-sm text-muted-foreground">No events yet — add one using the form above.</p>
         )}
-        {sorted.map((event) => (
-          <Card key={event.id} className="flex items-start justify-between gap-4 p-4">
+        {sorted.map((event) => {
+          const saving = list.pending.has(event.id)
+          return (
+          <Card key={event.id} className={`flex items-start justify-between gap-4 p-4 ${saving ? 'opacity-70' : ''}`} aria-busy={saving}>
             <div>
               <div className="flex items-center gap-2">
                 <p className="font-semibold text-foreground">{event.title}</p>
+                {saving && <span className="text-xs text-muted-foreground">Saving…</span>}
                 <Badge variant="secondary" className="text-xs capitalize">
                   {event.category}
                 </Badge>
@@ -338,6 +332,7 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
                 size="icon-sm"
                 className="size-11"
                 onClick={() => startEdit(event)}
+                disabled={saving}
                 aria-label={`Edit "${event.title}"`}
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -347,13 +342,15 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
                 size="icon-sm"
                 className="size-11"
                 onClick={() => setPendingDeleteId(event.id)}
+                disabled={saving}
                 aria-label={`Delete "${event.title}"`}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </MotionButton>
             </div>
           </Card>
-        ))}
+          )
+        })}
       </div>
 
       <ConfirmDialog

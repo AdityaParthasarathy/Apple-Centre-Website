@@ -9,6 +9,7 @@ import { MotionButton } from '@/components/patterns/motion-link'
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/components/ui/select'
 import { ImageUploadField } from '@/components/staff/image-upload-field'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
+import { tempId, useLatest, useOptimisticList } from '@/hooks/use-optimistic-list'
 import { inputClass } from '@/lib/utils'
 import type { SheetProgram } from '@/lib/sheet-types'
 
@@ -25,11 +26,17 @@ const EMPTY_FORM = {
 type FormState = typeof EMPTY_FORM
 
 export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetProgram[] }) {
-  const [programs, setPrograms] = useState(initialPrograms)
+  const list = useOptimisticList<SheetProgram>(initialPrograms, {
+    endpoint: '/api/staff/programs',
+    itemKey: 'program',
+    noun: 'program',
+    addAt: 'end',
+  })
+  const programs = list.items
   const [form, setForm] = useState<FormState>(EMPTY_FORM)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const formRef = useLatest(form)
 
   const startEdit = (program: SheetProgram) => {
     setEditingId(program.id)
@@ -50,40 +57,34 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
     setError(null)
   }
 
+  // A save that Google ends up refusing hands the form its typing back —
+  // unless they have already started on something else in the meantime.
+  const restoreForm = (snapshot: FormState, editing: string | null, message: string) => {
+    if (JSON.stringify(formRef.current) === JSON.stringify(EMPTY_FORM)) {
+      setForm(snapshot)
+      setEditingId(editing)
+    }
+    setError(message)
+    toast.error(message)
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitting(true)
-    setError(null)
+    const payload = { ...form }
+    const snapshot = form
+    const editing = editingId
+    // The form clears and the list changes at once; the save finishes behind it.
+    cancelEdit()
 
-    try {
-      if (editingId) {
-        const res = await fetch(`/api/staff/programs/${editingId}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
-        })
-        const body = await res.json().catch(() => null)
-        if (!res.ok) throw new Error(body?.error ?? 'Failed to update the program.')
-        setPrograms((prev) => prev.map((p) => (p.id === editingId ? { ...p, ...form, id: editingId } : p)))
-        toast.success('Program updated')
-      } else {
-        const res = await fetch('/api/staff/programs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form),
-        })
-        const body = await res.json().catch(() => null)
-        if (!res.ok) throw new Error(body?.error ?? 'Failed to save the program.')
-        if (body?.program) setPrograms((prev) => [...prev, body.program as SheetProgram])
-        toast.success('Program added')
-      }
-      cancelEdit()
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Couldn't save the program. Check your connection and try again."
-      setError(message)
-      toast.error(message)
-    } finally {
-      setSubmitting(false)
+    if (editing) {
+      const previous = programs.find((x) => x.id === editing)
+      const result = await list.update(editing, payload, { ...previous, ...payload, id: editing } as SheetProgram)
+      if (result.ok) toast.success('Program updated')
+      else restoreForm(snapshot, editing, result.message)
+    } else {
+      const result = await list.add(payload, { ...payload, id: tempId(), createdAt: new Date().toISOString() } as SheetProgram)
+      if (result.ok) toast.success('Program added')
+      else restoreForm(snapshot, null, result.message)
     }
   }
 
@@ -93,17 +94,13 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
     const id = pendingDeleteId
     setPendingDeleteId(null)
     if (!id) return
-    try {
-      const res = await fetch(`/api/staff/programs/${id}`, { method: 'DELETE' })
-      const body = await res.json().catch(() => null)
-      if (!res.ok) throw new Error(body?.error ?? 'Failed to delete the program.')
-      setPrograms((prev) => prev.filter((p) => p.id !== id))
-      if (editingId === id) cancelEdit()
+    if (editingId === id) cancelEdit()
+    const result = await list.remove(id)
+    if (result.ok) {
       toast.success('Program deleted')
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to delete the program.'
-      setError(message)
-      toast.error(message)
+    } else {
+      setError(result.message)
+      toast.error(result.message)
     }
   }
 
@@ -196,13 +193,8 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
             </p>
           )}
 
-          <MotionButton
-            type="submit"
-            size="lg"
-            disabled={submitting}
-            className="disabled:pointer-events-none disabled:opacity-80"
-          >
-            {submitting ? 'Saving…' : editingId ? 'Save changes' : 'Add program'}
+          <MotionButton type="submit" size="lg">
+            {editingId ? 'Save changes' : 'Add program'}
           </MotionButton>
         </form>
       </Card>
@@ -211,11 +203,14 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
         {programs.length === 0 && (
           <p className="text-sm text-muted-foreground">No programs added yet — add one using the form above.</p>
         )}
-        {programs.map((program) => (
-          <Card key={program.id} className="flex items-start justify-between gap-4 p-4">
+        {programs.map((program) => {
+          const saving = list.pending.has(program.id)
+          return (
+          <Card key={program.id} className={`flex items-start justify-between gap-4 p-4 ${saving ? 'opacity-70' : ''}`} aria-busy={saving}>
             <div>
               <div className="flex items-center gap-2">
                 <p className="font-semibold text-foreground">{program.title}</p>
+                {saving && <span className="text-xs text-muted-foreground">Saving…</span>}
                 <Badge variant="secondary" className="text-xs capitalize">
                   {program.level}
                 </Badge>
@@ -228,6 +223,7 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
                 size="icon-sm"
                 className="size-11"
                 onClick={() => startEdit(program)}
+                disabled={saving}
                 aria-label={`Edit "${program.title}"`}
               >
                 <Pencil className="h-3.5 w-3.5" />
@@ -237,13 +233,15 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
                 size="icon-sm"
                 className="size-11"
                 onClick={() => setPendingDeleteId(program.id)}
+                disabled={saving}
                 aria-label={`Delete "${program.title}"`}
               >
                 <Trash2 className="h-3.5 w-3.5" />
               </MotionButton>
             </div>
           </Card>
-        ))}
+          )
+        })}
       </div>
 
       <ConfirmDialog
