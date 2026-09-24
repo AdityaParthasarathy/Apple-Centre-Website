@@ -5,9 +5,10 @@ import { notFound } from 'next/navigation'
 import { ArrowLeft, Calendar, Clock, MapPin, Users } from 'lucide-react'
 import { Container } from '@/components/ui/container'
 import { Badge } from '@/components/ui/badge'
-import { AnimatedCtaLink } from '@/components/patterns/motion-link'
+import { EventRegistration } from '@/components/sections/event-registration'
 import { events } from '@/content/events'
 import { findEventBySlug } from '@/lib/merge-events'
+import { getRegisteredCount, isRegistrationOpen } from '@/lib/event-registration'
 import { isExternalImage } from '@/lib/utils'
 
 // Only the static seed events get a page built at deploy time — faculty-added
@@ -45,6 +46,8 @@ export default async function EventDetailPage({
   if (!event) {
     notFound()
   }
+
+  const registered = await getRegisteredCount(event.id)
 
   return (
     <article>
@@ -128,9 +131,13 @@ export default async function EventDetailPage({
                 </dl>
               </div>
 
-              <AnimatedCtaLink href="/apply" className="w-full">
-                Register Interest
-              </AnimatedCtaLink>
+              <EventRegistration
+                eventId={event.id}
+                eventTitle={event.title}
+                capacity={event.capacity}
+                registered={registered}
+                open={isRegistrationOpen(event)}
+              />
             </aside>
           </div>
         </Container>

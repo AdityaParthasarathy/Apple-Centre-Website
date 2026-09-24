@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 
 const CARDS = [
   { label: 'Events', action: 'listEvents', href: '/staff/events' },
+  { label: 'Registrations', action: 'listRegistrations', href: '/staff/registrations' },
   { label: 'Announcements', action: 'listAnnouncements', href: '/staff/announcements' },
   { label: 'Gallery photos', action: 'listGallery', href: '/staff/gallery' },
   { label: 'Applications', action: 'listApplications', href: '/staff/applications' },

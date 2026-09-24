@@ -109,6 +109,20 @@ export interface SheetProject {
   createdAt?: string
 }
 
+export interface SheetRegistration {
+  id: string
+  eventId: string
+  /** Copied in at registration time, so the list still reads sensibly if the event is later renamed or deleted. */
+  eventTitle: string
+  eventDate: string
+  name: string
+  email: string
+  phone: string
+  college: string
+  year: string
+  registeredAt: string
+}
+
 export interface SheetAchievement {
   id: string
   title: string

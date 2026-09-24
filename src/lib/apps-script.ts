@@ -131,7 +131,7 @@ const ADD_ACTIONS: Record<string, { list: string; key: string }> = {
 // already gone. Retrying blindly is what previously produced a duplicate
 // gallery row, so each kind of write is handled by whether repeating it is
 // harmless:
-//  - update / upload: same input, same result — just retry once.
+//  - update / upload / register: same input, same result — just retry once.
 //  - delete: retry once; "not found" on the retry means the first try worked.
 //  - add: the row's id is fixed up front, then the sheet is read back to see
 //    whether it landed before anything is repeated. If that read-back itself
@@ -144,7 +144,9 @@ async function callWrite<T extends Record<string, unknown>>(
   const add = ADD_ACTIONS[action]
   const body = add && !payload.id ? { ...payload, id: crypto.randomUUID() } : payload
 
-  if (!add && !/^(update|delete|upload)/.test(action)) return callAppsScriptOnce<T>(action, body)
+  // `registerForEvent` is safe to repeat: the script answers a second attempt
+  // for the same email + event with the existing registration, not a new one.
+  if (!add && !/^(update|delete|upload|register)/.test(action)) return callAppsScriptOnce<T>(action, body)
 
   const attempt = async (): Promise<T> => {
     try {
@@ -179,23 +181,29 @@ async function callWrite<T extends Record<string, unknown>>(
 
 export async function callAppsScript<T extends Record<string, unknown> = Record<string, unknown>>(
   action: string,
-  payload: Record<string, unknown> = {}
+  payload: Record<string, unknown> = {},
+  // `fresh` skips the 60s read cache — for the staff registrations list,
+  // where "someone just signed up" has to show up now, not next minute.
+  // Still retried, shared while in flight, and served from lastGood on failure.
+  { fresh = false }: { fresh?: boolean } = {}
 ): Promise<T> {
   // Only read-only `list*` actions are cached/shared. Writes are never
   // served from a cache; they get their own careful retry in callWrite.
   if (!action.startsWith('list')) return callWrite<T>(action, payload)
 
   const key = `${action}:${JSON.stringify(payload)}`
-  const pending = inFlight.get(key)
+  const read = fresh ? callAppsScriptOnce : callAppsScriptOnceCached
+  const inFlightKey = fresh ? `fresh:${key}` : key
+  const pending = inFlight.get(inFlightKey)
   if (pending) return pending as Promise<T>
 
   const request = (async () => {
     try {
       let result: T
       try {
-        result = (await callAppsScriptOnceCached(action, payload)) as T
+        result = (await read(action, payload)) as T
       } catch {
-        result = (await callAppsScriptOnceCached(action, payload)) as T
+        result = (await read(action, payload)) as T
       }
       lastGood.set(key, result)
       return result
@@ -203,8 +211,8 @@ export async function callAppsScript<T extends Record<string, unknown> = Record<
       if (lastGood.has(key)) return lastGood.get(key) as T
       throw err
     }
-  })().finally(() => inFlight.delete(key))
+  })().finally(() => inFlight.delete(inFlightKey))
 
-  inFlight.set(key, request)
+  inFlight.set(inFlightKey, request)
   return request
 }

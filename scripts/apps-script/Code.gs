@@ -66,6 +66,14 @@ function doPost(e) {
         return handleUpdateProject(body);
       case 'deleteProject':
         return handleDeleteProject(body);
+      case 'registerForEvent':
+        return handleRegisterForEvent(body);
+      case 'listRegistrations':
+        return handleListRegistrations();
+      case 'listRegistrationCounts':
+        return handleListRegistrationCounts();
+      case 'deleteRegistration':
+        return handleDeleteRegistration(body);
       case 'listAchievements':
         return handleListAchievements();
       case 'addAchievement':
@@ -166,18 +174,25 @@ function withLock(fn) {
 
 function appendRow(sheetName, rowObject) {
   withLock(function () {
-    var sheet = getSheet(sheetName);
-    var headers = sheet
-      .getRange(1, 1, 1, sheet.getLastColumn())
-      .getValues()[0]
-      .map(function (h) {
-        return String(h).trim();
-      });
-    var row = headers.map(function (header) {
-      return Object.prototype.hasOwnProperty.call(rowObject, header) ? rowObject[header] : '';
-    });
-    sheet.appendRow(row);
+    appendRowUnlocked(sheetName, rowObject);
   });
+}
+
+// The write itself, without taking the lock — for a handler that has to read
+// and write as one atomic step and so already holds it (the script lock isn't
+// re-entrant, so calling appendRow from inside withLock would wait on itself).
+function appendRowUnlocked(sheetName, rowObject) {
+  var sheet = getSheet(sheetName);
+  var headers = sheet
+    .getRange(1, 1, 1, sheet.getLastColumn())
+    .getValues()[0]
+    .map(function (h) {
+      return String(h).trim();
+    });
+  var row = headers.map(function (header) {
+    return Object.prototype.hasOwnProperty.call(rowObject, header) ? rowObject[header] : '';
+  });
+  sheet.appendRow(row);
 }
 
 // A handful of early Applications rows got their id written as a plain
@@ -606,6 +621,138 @@ function handleUpdateProject(body) {
 function handleDeleteProject(body) {
   var ok = deleteRowById('Projects', body.id);
   if (!ok) return jsonResponse({ success: false, error: 'Project not found.' });
+  return jsonResponse({ success: true });
+}
+
+// ---------------------------------------------------------------------------
+// Event registrations — a student reserving a seat at one event (NOT the
+// Applications tab, which is someone applying to join the Centre itself).
+// The tab is created on first use, so there's no manual sheet setup.
+// ---------------------------------------------------------------------------
+
+var REGISTRATION_HEADERS = ['id', 'eventId', 'eventTitle', 'eventDate', 'name', 'email', 'phone', 'college', 'year', 'registeredAt'];
+
+function ensureRegistrationsSheet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss.getSheetByName('Registrations')) {
+    var sheet = ss.insertSheet('Registrations');
+    sheet.getRange(1, 1, 1, REGISTRATION_HEADERS.length).setValues([REGISTRATION_HEADERS]);
+    // Phone numbers and dates are stored as text so Sheets doesn't strip a
+    // leading zero or reinterpret them.
+    sheet.getRange('G:G').setNumberFormat('@');
+    sheet.getRange('D:D').setNumberFormat('@');
+  }
+}
+
+function registrationRow(row) {
+  return {
+    id: row.id,
+    eventId: row.eventId,
+    eventTitle: row.eventTitle,
+    eventDate: dateOnly(row.eventDate),
+    name: row.name,
+    email: row.email,
+    phone: String(row.phone || ''),
+    college: row.college || '',
+    year: row.year || '',
+    registeredAt: isoString(row.registeredAt),
+  };
+}
+
+// Capacity check, duplicate check and the append all happen under one lock,
+// so two students taking the last seat at the same instant can't both get it.
+// Registering the same email twice for one event succeeds and returns the
+// existing row (alreadyRegistered) instead of failing or adding a second —
+// that also makes it safe for the website to retry after a garbled reply.
+function handleRegisterForEvent(body) {
+  return withLock(function () {
+    ensureRegistrationsSheet();
+    var email = String(body.email || '').trim().toLowerCase();
+    var capacity = Number(body.capacity) || 0;
+    var forEvent = readRows('Registrations').filter(function (row) {
+      return String(row.eventId) === String(body.eventId);
+    });
+
+    var existing = forEvent.filter(function (row) {
+      return String(row.email).trim().toLowerCase() === email;
+    })[0];
+    if (existing) {
+      return jsonResponse({
+        success: true,
+        alreadyRegistered: true,
+        registration: registrationRow(existing),
+        spotsLeft: capacity ? Math.max(0, capacity - forEvent.length) : null,
+      });
+    }
+
+    if (capacity && forEvent.length >= capacity) {
+      return jsonResponse({ success: false, error: 'This event is full.' });
+    }
+
+    var registration = {
+      id: generateId(),
+      eventId: body.eventId,
+      eventTitle: body.eventTitle || '',
+      eventDate: body.eventDate || '',
+      name: body.name,
+      email: String(body.email || '').trim(),
+      phone: body.phone || '',
+      college: body.college || '',
+      year: body.year || '',
+      registeredAt: new Date().toISOString(),
+    };
+    appendRowUnlocked('Registrations', registration);
+    keepPhoneAsText(registration.phone);
+    return jsonResponse({
+      success: true,
+      alreadyRegistered: false,
+      registration: registration,
+      spotsLeft: capacity ? Math.max(0, capacity - forEvent.length - 1) : null,
+    });
+  });
+}
+
+// appendRow types values the way a person typing into the cell would, so
+// "0123456789" became the number 123456789 and "+919876543210" lost its "+" —
+// even with the column formatted as text. Setting the format on the cell
+// first and only then writing the value keeps a phone number exactly as typed.
+function keepPhoneAsText(phone) {
+  if (!phone) return;
+  var sheet = getSheet('Registrations');
+  var headers = sheet
+    .getRange(1, 1, 1, sheet.getLastColumn())
+    .getValues()[0]
+    .map(function (h) {
+      return String(h).trim();
+    });
+  var col = headers.indexOf('phone') + 1;
+  if (col === 0) return;
+  sheet.getRange(sheet.getLastRow(), col).setNumberFormat('@').setValue(String(phone));
+}
+
+function handleListRegistrations() {
+  ensureRegistrationsSheet();
+  var rows = readRows('Registrations').map(registrationRow);
+  return jsonResponse({ success: true, items: rows });
+}
+
+// Just {eventId, count} pairs — what the public event pages need for
+// "12 spots left" without shipping every student's details to the site.
+function handleListRegistrationCounts() {
+  ensureRegistrationsSheet();
+  var counts = {};
+  readRows('Registrations').forEach(function (row) {
+    counts[row.eventId] = (counts[row.eventId] || 0) + 1;
+  });
+  var items = Object.keys(counts).map(function (eventId) {
+    return { eventId: eventId, count: counts[eventId] };
+  });
+  return jsonResponse({ success: true, items: items });
+}
+
+function handleDeleteRegistration(body) {
+  var ok = deleteRowById('Registrations', body.id);
+  if (!ok) return jsonResponse({ success: false, error: 'Registration not found.' });
   return jsonResponse({ success: true });
 }
 
