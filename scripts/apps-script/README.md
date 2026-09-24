@@ -18,6 +18,7 @@ header name):
 | `Announcements` | `id`, `title`, `body`, `published`, `pinned`, `createdBy`, `createdAt` |
 | `Gallery` | `id`, `title`, `description`, `image`, `category`, `date`, `createdBy`, `createdAt` |
 | `Projects` | `id`, `title`, `description`, `team`, `technologies`, `image`, `iconKey`, `featured`, `link`, `createdBy`, `createdAt` |
+| `Achievements` | `id`, `title`, `placement`, `institution`, `description`, `image`, `createdBy`, `createdAt` |
 | `TeamMembers` | `id`, `name`, `role`, `bio`, `image`, `expertise`, `contact`, `createdBy`, `createdAt` |
 | `Programs` | `id`, `title`, `description`, `duration`, `level`, `topics`, `image`, `createdBy`, `createdAt` |
 | `Facilities` | `id`, `title`, `description`, `image`, `createdBy`, `createdAt` |

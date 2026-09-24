@@ -4,6 +4,7 @@ import { AboutSection } from '@/components/sections/about'
 import { LabsFacilitiesSection } from '@/components/sections/labs-facilities'
 import { CentreSpaceSection } from '@/components/sections/centre-space'
 import { ProjectsSection } from '@/components/sections/projects'
+import { AchievementsSection } from '@/components/sections/achievements'
 import { EventsSection } from '@/components/sections/events'
 import { GallerySection } from '@/components/sections/gallery'
 import { FacultySection } from '@/components/sections/faculty'
@@ -75,6 +76,7 @@ export default async function HomePage({
       <HeroSection />
       <IMacScrollWindows />
       <CentreSpaceSection />
+      <AchievementsSection />
       <EventsSection />
       <GallerySection />
       <FacultySection />

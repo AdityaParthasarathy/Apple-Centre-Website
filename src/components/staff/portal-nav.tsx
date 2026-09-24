@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { href: '/staff/gallery', label: 'Gallery' },
   { href: '/staff/applications', label: 'Applications' },
   { href: '/staff/projects', label: 'Projects' },
+  { href: '/staff/achievements', label: 'Achievements' },
   { href: '/staff/team', label: 'Team' },
   { href: '/staff/programs', label: 'Programs' },
   { href: '/staff/facilities', label: 'Facilities' },
@@ -27,7 +28,7 @@ export function PortalNav() {
     const el = scrollRef.current
     if (!el) return
 
-    // With 9 tabs this strip overflows on narrower screens with no visual
+    // With 10 tabs this strip overflows on narrower screens with no visual
     // hint that it scrolls — these edge fades only show up when there's
     // actually more to scroll in that direction, so they disappear once
     // the strip fits or you've scrolled all the way to an edge.

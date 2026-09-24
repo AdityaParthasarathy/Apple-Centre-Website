@@ -61,6 +61,7 @@ export function SiteFooter({ programs }: { programs: Program[] }) {
             <ul className="space-y-2 text-sm text-background/60">
               <li><Link href="/events" className="transition hover:text-background">Events</Link></li>
               <li><Link href="/projects" className="transition hover:text-background">Projects</Link></li>
+              <li><Link href="/achievements" className="transition hover:text-background">Achievements</Link></li>
               <li><Link href="/gallery" className="transition hover:text-background">Gallery</Link></li>
               <li><Link href="/faculty" className="transition hover:text-background">Team</Link></li>
             </ul>

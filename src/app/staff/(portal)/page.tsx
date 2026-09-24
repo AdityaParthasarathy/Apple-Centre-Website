@@ -22,12 +22,13 @@ async function safeCount(action: string): Promise<number | null> {
 
 export default async function StaffDashboardPage() {
   const session = await getFacultySession()
-  const [events, announcements, gallery, applications, projects, team, programs, facilities] = await Promise.all([
+  const [events, announcements, gallery, applications, projects, achievements, team, programs, facilities] = await Promise.all([
     safeCount('listEvents'),
     safeCount('listAnnouncements'),
     safeCount('listGallery'),
     safeCount('listApplications'),
     safeCount('listProjects'),
+    safeCount('listAchievements'),
     safeCount('listTeamMembers'),
     safeCount('listPrograms'),
     safeCount('listFacilities'),
@@ -39,6 +40,7 @@ export default async function StaffDashboardPage() {
     { label: 'Gallery photos', value: gallery, href: '/staff/gallery' },
     { label: 'Applications', value: applications, href: '/staff/applications' },
     { label: 'Projects', value: projects, href: '/staff/projects' },
+    { label: 'Achievements', value: achievements, href: '/staff/achievements' },
     { label: 'Team members', value: team, href: '/staff/team' },
     { label: 'Programs', value: programs, href: '/staff/programs' },
     { label: 'Facilities', value: facilities, href: '/staff/facilities' },

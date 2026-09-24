@@ -66,6 +66,14 @@ function doPost(e) {
         return handleUpdateProject(body);
       case 'deleteProject':
         return handleDeleteProject(body);
+      case 'listAchievements':
+        return handleListAchievements();
+      case 'addAchievement':
+        return handleAddAchievement(body);
+      case 'updateAchievement':
+        return handleUpdateAchievement(body);
+      case 'deleteAchievement':
+        return handleDeleteAchievement(body);
       case 'listTeamMembers':
         return handleListTeamMembers();
       case 'addTeamMember':
@@ -598,6 +606,59 @@ function handleUpdateProject(body) {
 function handleDeleteProject(body) {
   var ok = deleteRowById('Projects', body.id);
   if (!ok) return jsonResponse({ success: false, error: 'Project not found.' });
+  return jsonResponse({ success: true });
+}
+
+// ---------------------------------------------------------------------------
+// Achievements — hackathon wins, prizes and awards shown in the public
+// "Hackathons & Achievements" section.
+// ---------------------------------------------------------------------------
+
+function handleListAchievements() {
+  var rows = readRows('Achievements').map(function (row) {
+    return {
+      id: row.id,
+      title: row.title,
+      placement: row.placement,
+      institution: row.institution || '',
+      description: row.description || '',
+      image: normalizeDriveImageUrl(row.image),
+      createdBy: row.createdBy,
+      createdAt: isoString(row.createdAt),
+    };
+  });
+  return jsonResponse({ success: true, items: rows });
+}
+
+function handleAddAchievement(body) {
+  var id = body.id || generateId();
+  var achievement = {
+    id: id,
+    title: body.title,
+    placement: body.placement,
+    institution: body.institution || '',
+    description: body.description || '',
+    image: body.image || '',
+    createdBy: body.createdBy || '',
+    createdAt: new Date().toISOString(),
+  };
+  appendRow('Achievements', achievement);
+  return jsonResponse({ success: true, achievement: achievement });
+}
+
+function handleUpdateAchievement(body) {
+  var updates = {};
+  Object.keys(body).forEach(function (key) {
+    if (key !== 'id' && key !== 'action' && key !== 'secret') updates[key] = body[key];
+  });
+  var ok = updateRowById('Achievements', body.id, updates);
+  if (!ok) return jsonResponse({ success: false, error: 'Achievement not found.' });
+  return jsonResponse({ success: true });
+}
+
+function handleDeleteAchievement(body) {
+  var ok = deleteRowById('Achievements', body.id);
+  if (!ok) return jsonResponse({ success: false, error: 'Achievement not found.' });
   return jsonResponse({ success: true });
 }
 

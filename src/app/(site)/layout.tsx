@@ -6,7 +6,7 @@ import { SkipLink } from "@/components/patterns/skip-link";
 import { WaveField } from "@/components/patterns/wave-field";
 import { buildSearchIndex } from "@/lib/search-index";
 import { getAllPrograms } from "@/lib/merge-programs";
-import { Home, GraduationCap, FolderKanban, Calendar, Images, Users } from "lucide-react";
+import { Home, GraduationCap, FolderKanban, Trophy, Calendar, Images, Users } from "lucide-react";
 
 // Search merges in live Apps Script sheet data (see lib/search-index.ts),
 // same freshness window as the other faculty-managed content routes.
@@ -16,6 +16,7 @@ const dockItems: DockItem[] = [
   { id: 'home', label: 'Home', href: '/', icon: <Home className="h-4 w-4" /> },
   { id: 'programs', label: 'Programs', href: '/programs', icon: <GraduationCap className="h-4 w-4" /> },
   { id: 'projects', label: 'Projects', href: '/projects', icon: <FolderKanban className="h-4 w-4" /> },
+  { id: 'achievements', label: 'Achievements', href: '/achievements', icon: <Trophy className="h-4 w-4" /> },
   { id: 'events', label: 'Events', href: '/events', icon: <Calendar className="h-4 w-4" /> },
   { id: 'gallery', label: 'Gallery', href: '/gallery', icon: <Images className="h-4 w-4" /> },
   { id: 'faculty', label: 'Faculty', href: '/faculty', icon: <Users className="h-4 w-4" /> },

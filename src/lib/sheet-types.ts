@@ -109,6 +109,17 @@ export interface SheetProject {
   createdAt?: string
 }
 
+export interface SheetAchievement {
+  id: string
+  title: string
+  placement: string
+  institution?: string
+  description?: string
+  image?: string
+  createdBy?: string
+  createdAt?: string
+}
+
 // "TeamMembers" — deliberately not "Faculty", which is the sheet tab that
 // stores admin portal LOGIN credentials. This is the public "Meet the Team"
 // roster, an unrelated piece of display content.
