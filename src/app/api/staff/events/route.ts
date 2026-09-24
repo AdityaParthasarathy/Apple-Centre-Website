@@ -3,6 +3,7 @@ import { getFacultySession } from '@/lib/session'
 import { callAppsScript } from '@/lib/apps-script'
 import type { SheetEvent } from '@/lib/sheet-types'
 import { failureResponse } from '@/lib/api-errors'
+import { isValidEventTime } from '@/lib/event-time'
 
 // Google Apps Script takes 3-45s to answer (see lib/apps-script.ts), and
 // Vercel cuts a function off at its plan default (often 10s) unless the route
@@ -30,6 +31,9 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null)
   if (!body?.title || !body?.date || !body?.category || !body?.image) {
     return NextResponse.json({ error: 'Title, date, category, and a photo are required.' }, { status: 400 })
+  }
+  if (!isValidEventTime(body.time)) {
+    return NextResponse.json({ error: 'Choose a start time (and an end time, if there is one).' }, { status: 400 })
   }
 
   try {

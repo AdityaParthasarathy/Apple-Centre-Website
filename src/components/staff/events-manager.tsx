@@ -10,6 +10,7 @@ import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/c
 import { ImageUploadField } from '@/components/staff/image-upload-field'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
 import { inputClass } from '@/lib/utils'
+import { formatTimeRange, parseTimeRange } from '@/lib/event-time'
 import type { SheetEvent } from '@/lib/sheet-types'
 
 const CATEGORIES: SheetEvent['category'][] = ['workshop', 'talk', 'hackathon', 'networking']
@@ -18,7 +19,8 @@ const EMPTY_FORM = {
   title: '',
   description: '',
   date: '',
-  time: '',
+  startTime: '',
+  endTime: '',
   location: '',
   category: 'workshop' as SheetEvent['category'],
   image: '',
@@ -42,7 +44,8 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
       title: event.title,
       description: event.description,
       date: event.date.slice(0, 10),
-      time: event.time,
+      startTime: parseTimeRange(event.time).start,
+      endTime: parseTimeRange(event.time).end,
       location: event.location,
       category: event.category,
       image: event.image,
@@ -61,14 +64,18 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setSubmitting(true)
     setError(null)
+    if (form.endTime && form.endTime <= form.startTime) {
+      setError('The end time must be after the start time.')
+      return
+    }
+    setSubmitting(true)
 
     const payload = {
       title: form.title,
       description: form.description,
       date: form.date,
-      time: form.time,
+      time: formatTimeRange(form.startTime, form.endTime),
       location: form.location,
       category: form.category,
       image: form.image,
@@ -206,29 +213,30 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
                 className={inputClass}
               />
             </div>
+            {/* Real time pickers, not free text: letters can't be typed, and
+                the two values become "2:00 PM – 5:00 PM" (see lib/event-time.ts). */}
             <div>
-              <label htmlFor="eventTime" className="mb-1.5 block text-sm font-medium text-foreground">
-                Time
+              <label htmlFor="eventStartTime" className="mb-1.5 block text-sm font-medium text-foreground">
+                Starts at
               </label>
               <input
-                id="eventTime"
+                id="eventStartTime"
+                type="time"
                 required
-                placeholder="2:00 PM – 5:00 PM"
-                value={form.time}
-                onChange={(e) => setForm({ ...form, time: e.target.value })}
+                value={form.startTime}
+                onChange={(e) => setForm({ ...form, startTime: e.target.value })}
                 className={inputClass}
               />
             </div>
             <div>
-              <label htmlFor="eventCapacity" className="mb-1.5 block text-sm font-medium text-foreground">
-                Capacity (optional)
+              <label htmlFor="eventEndTime" className="mb-1.5 block text-sm font-medium text-foreground">
+                Ends at (optional)
               </label>
               <input
-                id="eventCapacity"
-                type="number"
-                min={0}
-                value={form.capacity}
-                onChange={(e) => setForm({ ...form, capacity: e.target.value })}
+                id="eventEndTime"
+                type="time"
+                value={form.endTime}
+                onChange={(e) => setForm({ ...form, endTime: e.target.value })}
                 className={inputClass}
               />
             </div>
@@ -247,8 +255,25 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
                 className={inputClass}
               />
             </div>
-            <ImageUploadField required value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
+            <div>
+              <label htmlFor="eventCapacity" className="mb-1.5 block text-sm font-medium text-foreground">
+                Capacity (optional)
+              </label>
+              <input
+                id="eventCapacity"
+                type="number"
+                min={1}
+                step={1}
+                inputMode="numeric"
+                placeholder="Leave empty for no limit"
+                value={form.capacity}
+                onChange={(e) => setForm({ ...form, capacity: e.target.value })}
+                className={inputClass}
+              />
+            </div>
           </div>
+
+          <ImageUploadField required value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
 
           <div className="flex flex-wrap gap-6">
             <label className="flex items-center gap-2 text-sm text-foreground">
