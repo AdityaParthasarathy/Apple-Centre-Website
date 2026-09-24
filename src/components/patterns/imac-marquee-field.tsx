@@ -17,7 +17,7 @@ export function IMacMarqueeField() {
         <div key={i} className={lane.className}>
           <div className="imac-lane-track">
             {[...lane.colors, ...lane.colors].map((colorway, j) => (
-              <div className="imac-lane-item" key={j} style={{ animationDelay: `${(j % lane.colors.length) * -1.3}s` }}>
+              <div className="imac-lane-item" key={j}>
                 <IMacIcon colorway={colorway} />
               </div>
             ))}

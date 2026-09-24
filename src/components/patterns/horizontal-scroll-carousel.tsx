@@ -2,7 +2,8 @@
 
 import { useRef } from 'react'
 import Image from 'next/image'
-import { motion, useScroll, useTransform } from 'motion/react'
+import { motion, useTransform } from 'motion/react'
+import { useElementScrollProgress } from '@/hooks/use-scroll-progress'
 import { isExternalImage } from '@/lib/utils'
 
 export interface HorizontalScrollCard {
@@ -26,7 +27,7 @@ export function HorizontalScrollCarousel({
   onSelect?: (index: number) => void
 }) {
   const targetRef = useRef<HTMLDivElement>(null)
-  const { scrollYProgress } = useScroll({ target: targetRef })
+  const scrollYProgress = useElementScrollProgress(targetRef)
   const x = useTransform(scrollYProgress, [0, 1], ['1%', '-95%'])
 
   return (

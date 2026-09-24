@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { motion, useScroll, useTransform, useMotionValueEvent } from 'motion/react'
+import { motion, useTransform, useMotionValueEvent } from 'motion/react'
+import { useElementScrollProgress } from '@/hooks/use-scroll-progress'
 import { useLenis } from 'lenis/react'
 import { IMacMarqueeField } from '@/components/patterns/imac-marquee-field'
 
@@ -9,8 +10,8 @@ import { IMacMarqueeField } from '@/components/patterns/imac-marquee-field'
 // each auto-driven by its own scroll runway instead of a click: as you
 // scroll into one, its shell grows and its bezel/chin/stand dissolve until
 // the screen fills the viewport and the live embedded section
-// (?embed=1&section=<id> — see page.tsx for why that flag exists, and why
-// it renders ONLY that one section rather than the whole site) fades in.
+// (/embed/<id> — its own minimal, pre-built route that renders ONLY that
+// one section, not a second copy of the whole site) fades in.
 // Once open, the iframe becomes scroll-interactive (see iframePointerEvents
 // below) so you can actually scroll through everything in that section —
 // ordinary browser scroll-chaining then hands control back to this page,
@@ -35,10 +36,7 @@ function IMacScrollWindow({
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const { scrollYProgress } = useScroll({
-    target: wrapperRef,
-    offset: ['start start', 'end end'],
-  })
+  const scrollYProgress = useElementScrollProgress(wrapperRef, ['start start', 'end end'])
   const lenis = useLenis()
 
   // The iframe used to only mount once the shell was already fully grown,
@@ -239,7 +237,7 @@ function IMacScrollWindow({
                 {iframeActive && (
                   <motion.iframe
                     ref={iframeRef}
-                    src={`/?embed=1&section=${id}`}
+                    src={`/embed/${id}`}
                     title={`Apple Centre — ${label}`}
                     className="imac-reveal-iframe"
                     style={{ pointerEvents: iframePointerEvents }}

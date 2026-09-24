@@ -190,7 +190,10 @@
   width: 38vmax;
   height: 38vmax;
   background: radial-gradient(circle at 50% 50%, var(--wave-color) 0%, transparent 72%);
-  filter: blur(60px);
+  /* No blur() filter: the gradient above already fades to transparent, and a
+     60px blur on four viewport-sized layers that never stop moving was one of
+     the most expensive things on the page to re-composite every frame. */
+  will-change: transform;
   opacity: 0.8;
 }
 
@@ -210,7 +213,6 @@
   top: -16%;
   right: -16%;
   border-radius: 9999px;
-  filter: blur(66px);
   animation: wave-drift-b 31s ease-in-out infinite;
   animation-delay: -8s;
 }
@@ -345,7 +347,6 @@
   width: 100%;
   overflow: hidden;
   opacity: 0.4;
-  filter: blur(0.5px);
 }
 
 .imac-lane--1 {
@@ -362,6 +363,7 @@
   display: flex;
   width: max-content;
   gap: 4vw;
+  will-change: transform;
 }
 
 .imac-lane--1 .imac-lane-track {
@@ -379,7 +381,6 @@
   width: 12vmax;
   min-width: 140px;
   max-width: 220px;
-  animation: imac-float 9s ease-in-out infinite;
 }
 
 .imac-lane-item svg {
@@ -403,37 +404,21 @@
     transform: translateX(0);
   }
 }
-@keyframes imac-float {
-  0%,
-  100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-14px);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .imac-lane-track,
-  .imac-lane-item {
+  .imac-lane-track {
     animation: none;
   }
 }
 
-/* Embedded pages (?embed=1&section=<id> — see page.tsx) render the real
-   SiteHeader/FloatingDock/SiteFooter too, since those live in the shared
-   layout and layouts can't see searchParams to skip them. Left alone, an
-   open iMac window showed those a second time stacked right on top of the
-   real page's own — and hid the iMac's own browser-chrome traffic lights
-   underneath the real header in the process. page.tsx drops an
-   #embed-chrome-off marker into the embedded tree; this rule uses :has()
-   to reach up to the shared ancestor and hide the real chrome for exactly
-   that render, leaving only the section content and the iMac's own
-   browser-chrome visible. */
-body:has(#embed-chrome-off) header,
-body:has(#embed-chrome-off) nav,
-body:has(#embed-chrome-off) footer {
-  display: none;
+/* The pages inside the iMac windows (app/embed) sit on a static copy of the
+   drifting background's four corner colours — no animation, one flat layer. */
+.embed-backdrop {
+  background:
+    radial-gradient(38vmax 38vmax at 0% 0%, var(--wave-warm), transparent 72%),
+    radial-gradient(38vmax 38vmax at 100% 0%, var(--wave-amber), transparent 72%),
+    radial-gradient(38vmax 38vmax at 0% 100%, var(--wave-magenta), transparent 72%),
+    radial-gradient(38vmax 38vmax at 100% 100%, var(--wave-cool), transparent 72%),
+    var(--background);
 }
 
 /* The real page's own sticky header and fixed floating dock both carry a
@@ -444,8 +429,7 @@ body:has(#embed-chrome-off) footer {
    IMacScrollWindow drops an .imac-window-active marker in while its own
    shell is at (or near) fullscreen — see iframeActive in
    imac-scroll-windows.tsx — so this can hide the real chrome for exactly
-   that window, the same way #embed-chrome-off hides it inside the
-   embedded iframe itself. */
+   that window, the same way the embedded pages simply don't have it. */
 body:has(.imac-window-active) header,
 body:has(.imac-window-active) nav {
   display: none;

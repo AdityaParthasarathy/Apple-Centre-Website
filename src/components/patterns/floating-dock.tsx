@@ -4,7 +4,6 @@ import {
   motion,
   useMotionValue,
   useMotionValueEvent,
-  useScroll,
   useSpring,
   useTransform,
   type MotionValue,
@@ -12,6 +11,7 @@ import {
 import { useEffect, useRef, useState } from 'react'
 import { useLenis } from 'lenis/react'
 import { cn } from '@/lib/utils'
+import { useScrollY } from '@/hooks/use-scroll-progress'
 
 export interface DockItem {
   id: string
@@ -61,7 +61,7 @@ export function FloatingDock({ items, className }: FloatingDockProps) {
   // hide-on-scroll-down / reveal-on-scroll-up treatment SiteHeader already
   // uses solves it: the dock ducks away exactly when someone scrolls into
   // new content, and comes back the moment they scroll back up.
-  const { scrollY } = useScroll()
+  const scrollY = useScrollY()
   const [hidden, setHidden] = useState(false)
 
   useMotionValueEvent(scrollY, 'change', (latest) => {

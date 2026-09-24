@@ -8,7 +8,8 @@ import { TextEffect } from '@/components/patterns/text-effect'
 import { Container } from '@/components/ui/container'
 import { AnimatedCtaLink } from '@/components/patterns/motion-link'
 import { IMacMarqueeField } from '@/components/patterns/imac-marquee-field'
-import { motion, useScroll, useTransform } from 'motion/react'
+import { motion, useTransform } from 'motion/react'
+import { useElementScrollProgress } from '@/hooks/use-scroll-progress'
 import { ArrowRight } from 'lucide-react'
 
 const HERO_FLIP_WORDS = ['innovation', 'technology', 'design', 'possibility']
@@ -16,10 +17,7 @@ const HERO_FLIP_WORDS = ['innovation', 'technology', 'design', 'possibility']
 export function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null)
 
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ['start start', 'end start'],
-  })
+  const scrollYProgress = useElementScrollProgress(sectionRef, ['start start', 'end start'])
 
   // As the hero scrolls past, its content sinks and fades rather than just
   // sliding off screen — a quiet, deliberate exit instead of a hard cut.

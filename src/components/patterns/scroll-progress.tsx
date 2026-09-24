@@ -1,10 +1,11 @@
 'use client'
 
-import { motion, useScroll, useSpring } from 'motion/react'
+import { motion, useSpring } from 'motion/react'
+import { usePageScrollProgress } from '@/hooks/use-scroll-progress'
 
 /** Thin progress bar tracking scroll position through the whole page. */
 export function ScrollProgress() {
-  const { scrollYProgress } = useScroll()
+  const scrollYProgress = usePageScrollProgress()
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 300,
     damping: 40,

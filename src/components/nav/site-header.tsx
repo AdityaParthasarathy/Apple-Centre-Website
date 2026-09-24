@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { motion, useMotionValueEvent, useScroll } from 'motion/react'
+import { motion, useMotionValueEvent } from 'motion/react'
+import { useScrollY } from '@/hooks/use-scroll-progress'
 import { Container } from '@/components/ui/container'
 import { ExpandingSearch } from '@/components/patterns/expanding-search'
 import { ApplyNowButton } from '@/components/nav/apply-now-button'
@@ -15,7 +16,7 @@ import type { SearchItem } from '@/lib/search-index'
 // merges in live Apps Script sheet data — a client component can't hit
 // that itself.
 export function SiteHeader({ searchIndex }: { searchIndex: SearchItem[] }) {
-  const { scrollY } = useScroll()
+  const scrollY = useScrollY()
   const [hidden, setHidden] = useState(false)
 
   useMotionValueEvent(scrollY, 'change', (latest) => {
