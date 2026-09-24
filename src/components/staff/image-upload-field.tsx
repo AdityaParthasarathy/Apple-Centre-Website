@@ -61,7 +61,26 @@ export function ImageUploadField({
   const changeLabel = uploading ? `Uploading ${label.toLowerCase()}` : `Change ${label.toLowerCase()}`
 
   return (
-    <div>
+    <div className="relative">
+      {/* `required` used to only add "(required)" to the label — nothing
+          stopped the form submitting without a photo, leaving a blank tile
+          on the public page. The actual picker is a hidden file input that
+          is always empty (the file is uploaded on change and only its URL
+          kept), so it can't carry the constraint; this stand-in mirrors
+          `value` so the browser's own validation blocks the submit instead.
+          Deliberately not readOnly/disabled — both exempt an input from
+          validation. */}
+      {required && (
+        <input
+          type="text"
+          required
+          tabIndex={-1}
+          aria-hidden="true"
+          value={value}
+          onChange={() => {}}
+          className="pointer-events-none absolute bottom-0 left-0 h-px w-px opacity-0"
+        />
+      )}
       <label htmlFor={inputId} className="mb-1.5 block text-sm font-medium text-foreground">
         {label}
         {required && !value ? ' (required)' : ''}

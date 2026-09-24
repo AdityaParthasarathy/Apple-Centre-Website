@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import type { Metadata } from 'next'
 import { Card } from '@/components/ui/card'
@@ -8,43 +9,34 @@ export const metadata: Metadata = {
   title: 'Dashboard | Faculty Portal',
 }
 
+const CARDS = [
+  { label: 'Events', action: 'listEvents', href: '/staff/events' },
+  { label: 'Announcements', action: 'listAnnouncements', href: '/staff/announcements' },
+  { label: 'Gallery photos', action: 'listGallery', href: '/staff/gallery' },
+  { label: 'Applications', action: 'listApplications', href: '/staff/applications' },
+  { label: 'Projects', action: 'listProjects', href: '/staff/projects' },
+  { label: 'Achievements', action: 'listAchievements', href: '/staff/achievements' },
+  { label: 'Team members', action: 'listTeamMembers', href: '/staff/team' },
+  { label: 'Programs', action: 'listPrograms', href: '/staff/programs' },
+  { label: 'Facilities', action: 'listFacilities', href: '/staff/facilities' },
+]
+
 // Apps Script may not be set up yet (new deployment, missing sheet tabs) —
 // each count degrades to "—" independently rather than taking the whole
 // dashboard down.
-async function safeCount(action: string): Promise<number | null> {
+async function Count({ action }: { action: string }) {
+  let count: number | null
   try {
     const result = await callAppsScript<{ items: unknown[] }>(action)
-    return result.items?.length ?? 0
+    count = result.items?.length ?? 0
   } catch {
-    return null
+    count = null
   }
+  return <>{count ?? '—'}</>
 }
 
 export default async function StaffDashboardPage() {
   const session = await getFacultySession()
-  const [events, announcements, gallery, applications, projects, achievements, team, programs, facilities] = await Promise.all([
-    safeCount('listEvents'),
-    safeCount('listAnnouncements'),
-    safeCount('listGallery'),
-    safeCount('listApplications'),
-    safeCount('listProjects'),
-    safeCount('listAchievements'),
-    safeCount('listTeamMembers'),
-    safeCount('listPrograms'),
-    safeCount('listFacilities'),
-  ])
-
-  const cards = [
-    { label: 'Events', value: events, href: '/staff/events' },
-    { label: 'Announcements', value: announcements, href: '/staff/announcements' },
-    { label: 'Gallery photos', value: gallery, href: '/staff/gallery' },
-    { label: 'Applications', value: applications, href: '/staff/applications' },
-    { label: 'Projects', value: projects, href: '/staff/projects' },
-    { label: 'Achievements', value: achievements, href: '/staff/achievements' },
-    { label: 'Team members', value: team, href: '/staff/team' },
-    { label: 'Programs', value: programs, href: '/staff/programs' },
-    { label: 'Facilities', value: facilities, href: '/staff/facilities' },
-  ]
 
   return (
     <div>
@@ -54,11 +46,19 @@ export default async function StaffDashboardPage() {
       <p className="mt-1 text-muted-foreground">Manage the Centre&apos;s live content from here.</p>
 
       <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map((card) => (
+        {CARDS.map((card) => (
           <Link key={card.href} href={card.href}>
             <Card className="p-5">
               <p className="text-sm text-muted-foreground">{card.label}</p>
-              <p className="mt-2 text-3xl font-bold text-foreground">{card.value ?? '—'}</p>
+              {/* Each count streams in on its own: Apps Script latency is
+                  wildly uneven (2s to 45s observed), and awaiting all nine
+                  up front meant the page — and the Faculty nav with it —
+                  waited on whichever call was slowest. */}
+              <p className="mt-2 text-3xl font-bold text-foreground">
+                <Suspense fallback={<span className="text-muted-foreground">…</span>}>
+                  <Count action={card.action} />
+                </Suspense>
+              </p>
             </Card>
           </Link>
         ))}

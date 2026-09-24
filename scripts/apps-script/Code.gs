@@ -439,7 +439,7 @@ function handleListAnnouncements() {
 }
 
 function handleAddAnnouncement(body) {
-  var id = generateId();
+  var id = body.id || generateId();
   var announcement = {
     id: id,
     title: body.title,

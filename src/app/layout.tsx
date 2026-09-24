@@ -35,6 +35,11 @@ const monoFont = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Centre for Apple Technologies | RIT Chennai",
   description: "Innovation hub for Apple ecosystem technologies at Rajalakshmi Institute of Technology",
+  // Faculty-uploaded photos are hotlinked from lh3.googleusercontent.com,
+  // which rate-limits (HTTP 429) by Referer — every developer's
+  // http://localhost:3000 shares one throttled bucket, so photos showed as
+  // broken images locally. Nothing on the site needs to send a referrer.
+  referrer: "no-referrer",
   openGraph: {
     title: "Centre for Apple Technologies",
     description: "Where creativity meets technology",
