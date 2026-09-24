@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { unstable_cache } from 'next/cache'
 
 interface AppsScriptSuccess {
@@ -24,6 +25,18 @@ class AppsScriptAmbiguousError extends Error {}
  *  single attempt (a second one can't fit in the function's 60s). */
 const PHOTO_ACTIONS = new Set(['uploadImage', 'addGalleryImage'])
 
+// Every write runs inside a 60s Vercel function, and Google's behaviour shapes
+// how that time is spent. Measured against this script: the request itself
+// runs in 2-4s every time, but the second step — collecting its answer from
+// Google's echo URL — usually takes 1-6s and, about one time in five, stalls
+// for ~30s and then loses the answer. By then the write has already
+// happened. So a normal attempt is cut off at ATTEMPT_MS (waiting longer
+// almost never pays off) and the leftover time goes on checking what
+// happened and trying again, rather than on one long wait.
+const WRITE_BUDGET_MS = 58_000
+const ATTEMPT_MS = 14_000
+const PHOTO_ATTEMPT_MS = 40_000
+
 /**
  * Calls the Google Apps Script Web App that backs every piece of
  * server-managed data on this site (applications, events, announcements,
@@ -39,7 +52,9 @@ const PHOTO_ACTIONS = new Set(['uploadImage', 'addGalleryImage'])
  */
 async function callAppsScriptOnce<T extends Record<string, unknown>>(
   action: string,
-  payload: Record<string, unknown>
+  payload: Record<string, unknown>,
+  /** Overrides the deadline (used for the quick read-backs in callWrite). */
+  deadlineMs?: number
 ): Promise<T> {
   // Read here rather than taking url/secret as arguments: everything passed
   // to the unstable_cache-wrapped version below becomes part of its cache
@@ -60,11 +75,12 @@ async function callAppsScriptOnce<T extends Record<string, unknown>>(
   // timeout there just tells faculty their photo failed when it's merely
   // slow. But every write also runs inside a 60s Vercel function (see the
   // maxDuration on the API routes), so the budget is ONE deadline shared by
-  // both round-trips to Google, not a fresh allowance for each: 50s for the
-  // actions that carry a photo (callWrite gives those a single attempt),
-  // 20s for the rest (so an attempt, a read-back and a retry still fit).
+  // both round-trips to Google, not a fresh allowance for each — see the
+  // notes on WRITE_BUDGET_MS / ATTEMPT_MS / PHOTO_ATTEMPT_MS above.
   const isRead = action.startsWith('list')
-  const writeDeadline = isRead ? null : AbortSignal.timeout(PHOTO_ACTIONS.has(action) ? 50000 : 20000)
+  const sharedDeadline =
+    deadlineMs ?? (isRead ? null : PHOTO_ACTIONS.has(action) ? PHOTO_ATTEMPT_MS : ATTEMPT_MS)
+  const writeDeadline = sharedDeadline ? AbortSignal.timeout(sharedDeadline) : null
   const signal = () => writeDeadline ?? AbortSignal.timeout(15000)
 
   let res: Response
@@ -136,62 +152,80 @@ const ADD_ACTIONS: Record<string, { list: string; key: string }> = {
   addFacility: { list: 'listFacilities', key: 'facility' },
 }
 
-// Google's occasional garbled reply (see AppsScriptAmbiguousError) has
+// Google's occasional lost reply (see AppsScriptAmbiguousError) has
 // repeatedly hit writes that had in fact succeeded — a "failed" toast for a
 // saved change, and a delete that then can't be retried because the row is
 // already gone. Retrying blindly is what previously produced a duplicate
 // gallery row, so each kind of write is handled by whether repeating it is
 // harmless:
-//  - update / register: same input, same result — just retry once.
-//  - photo uploads (uploadImage, addGalleryImage): one attempt only — see
-//    PHOTO_ACTIONS. A failed one is reported so the person can try again;
-//    an add still reads the sheet back first, so a lost reply is never
-//    reported as a failure when the row did land.
-//  - delete: retry once; "not found" on the retry means the first try worked.
-//  - add: the row's id is fixed up front, then the sheet is read back to see
-//    whether it landed before anything is repeated. If that read-back itself
-//    fails, the outcome stays unknown and the error surfaces as-is rather
-//    than risk a second row.
+//  - update / register: same input, same result — retry.
+//  - delete: retry; "not found" on a retry means an earlier try worked.
+//  - add: the row gets an id derived from its own content (so the same add
+//    is the same row however many times it is sent, and Code.gs skips an
+//    id that already exists), and after a lost reply the sheet is read back
+//    to see whether it landed before anything is repeated. If that read-back
+//    keeps failing, the outcome stays unknown and the error surfaces as-is
+//    rather than risk a second row.
+//  - photo uploads (uploadImage, addGalleryImage): one attempt, because one
+//    can take most of the 60s (see PHOTO_ATTEMPT_MS). An add still reads the
+//    sheet back, so a lost reply is never reported as a failure when the row
+//    did land.
+// All of it stays inside WRITE_BUDGET_MS.
 async function callWrite<T extends Record<string, unknown>>(
   action: string,
   payload: Record<string, unknown>
 ): Promise<T> {
   const add = ADD_ACTIONS[action]
-  const body = add && !payload.id ? { ...payload, id: crypto.randomUUID() } : payload
+  const body = add && !payload.id ? { ...payload, id: contentId(action, payload) } : payload
 
   // `registerForEvent` is safe to repeat: the script answers a second attempt
   // for the same email + event with the existing registration, not a new one.
   if (!add && !/^(update|delete|register)/.test(action)) return callAppsScriptOnce<T>(action, body)
 
-  const attempt = async (): Promise<T> => {
+  const started = Date.now()
+  const timeLeft = () => WRITE_BUDGET_MS - (Date.now() - started)
+  const maxAttempts = PHOTO_ACTIONS.has(action) ? 1 : 3
+  let lastError: unknown
+
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    if (attempt > 0 && timeLeft() < ATTEMPT_MS + 1000) break
     try {
       return await callAppsScriptOnce<T>(action, body)
     } catch (err) {
-      if (!(err instanceof AppsScriptAmbiguousError) || !add) throw err
-      const existing = await callAppsScriptOnce<{ items: { id: string }[] }>(add.list, {}).catch(() => null)
-      // Not the ambiguous type on purpose: callWrite retries only that one,
+      lastError = err
+      if (!(err instanceof AppsScriptAmbiguousError)) {
+        // A definite answer. On a retry, "not found" for a delete just means
+        // an earlier attempt already removed the row.
+        if (attempt > 0 && action.startsWith('delete') && err instanceof Error && /not found/i.test(err.message)) {
+          return { success: true } as unknown as T
+        }
+        throw err
+      }
+      if (!add) continue
+
+      // Did the add land after all? Ask the sheet, twice if need be.
+      let checked = false
+      for (let read = 0; read < 2 && timeLeft() > ATTEMPT_MS + 1000; read++) {
+        const existing = await callAppsScriptOnce<{ items: { id: string }[] }>(add.list, {}, ATTEMPT_MS).catch(() => null)
+        if (!existing) continue
+        checked = true
+        const landed = existing.items.find((item) => String(item.id) === String(body.id))
+        if (landed) return { success: true, [add.key]: landed } as unknown as T
+        break
+      }
+      // Not the ambiguous type on purpose: this loop retries only that one,
       // and with the outcome unverifiable a retry could add a second row.
-      if (!existing) throw new Error(err.message, { cause: err })
-      const landed = existing.items.find((item) => String(item.id) === String(body.id))
-      if (landed) return { success: true, [add.key]: landed } as unknown as T
-      throw err
+      if (!checked) throw new Error(err.message, { cause: err })
     }
   }
+  throw lastError
+}
 
-  try {
-    return await attempt()
-  } catch (err) {
-    if (!(err instanceof AppsScriptAmbiguousError) || PHOTO_ACTIONS.has(action)) throw err
-  }
-
-  try {
-    return await attempt()
-  } catch (err) {
-    if (action.startsWith('delete') && err instanceof Error && /not found/i.test(err.message)) {
-      return { success: true } as unknown as T
-    }
-    throw err
-  }
+/** A stable id for an add, derived from what is being added: sending the same
+ *  form twice — a retry here, or someone pressing the button again after a
+ *  "couldn't confirm" — is the same row, not a second one. */
+function contentId(action: string, payload: Record<string, unknown>) {
+  return createHash('sha256').update(action).update(' ').update(JSON.stringify(payload)).digest('hex').slice(0, 32)
 }
 
 export async function callAppsScript<T extends Record<string, unknown> = Record<string, unknown>>(

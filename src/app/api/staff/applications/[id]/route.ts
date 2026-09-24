@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getFacultySession } from '@/lib/session'
 import { callAppsScript } from '@/lib/apps-script'
 import { sendMail } from '@/lib/mailer'
+import { failureResponse } from '@/lib/api-errors'
 
 // Google Apps Script takes 3-45s to answer (see lib/apps-script.ts), and
 // Vercel cuts a function off at its plan default (often 10s) unless the route
@@ -59,7 +60,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     return NextResponse.json(result)
   } catch (error) {
     console.error('Failed to update application status:', error)
-    return NextResponse.json({ error: 'Failed to update the application.' }, { status: 502 })
+    return failureResponse(error, 'Failed to update the application.')
   }
 }
 
@@ -74,6 +75,6 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     return NextResponse.json(result)
   } catch (error) {
     console.error('Failed to delete application:', error)
-    return NextResponse.json({ error: 'Failed to delete the application.' }, { status: 502 })
+    return failureResponse(error, 'Failed to delete the application.')
   }
 }

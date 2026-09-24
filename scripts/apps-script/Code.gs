@@ -174,8 +174,29 @@ function withLock(fn) {
 
 function appendRow(sheetName, rowObject) {
   withLock(function () {
+    // An id that is already in the sheet means this exact add already
+    // happened — the website derives an add's id from its content, and
+    // resends it when Google loses the reply — so it is skipped instead of
+    // creating a second row. (Rows without an id, like Applications, are
+    // unaffected.)
+    if (rowObject.id && rowWithIdExists(sheetName, rowObject.id)) return;
     appendRowUnlocked(sheetName, rowObject);
   });
+}
+
+function rowWithIdExists(sheetName, id) {
+  var values = getSheet(sheetName).getDataRange().getValues();
+  if (values.length < 2) return false;
+  var idCol = values[0]
+    .map(function (h) {
+      return String(h).trim();
+    })
+    .indexOf('id');
+  if (idCol === -1) return false;
+  for (var r = 1; r < values.length; r++) {
+    if (idsMatch(values[r][idCol], id)) return true;
+  }
+  return false;
 }
 
 // The write itself, without taking the lock — for a handler that has to read
