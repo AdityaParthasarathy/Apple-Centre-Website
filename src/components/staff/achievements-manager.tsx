@@ -182,7 +182,7 @@ export function AchievementsManager({ initialAchievements }: { initialAchievemen
             />
           </div>
           <ImageUploadField
-            label="Photo (optional)"
+            required
             value={form.image}
             onChange={(url) => setForm({ ...form, image: url })}
           />

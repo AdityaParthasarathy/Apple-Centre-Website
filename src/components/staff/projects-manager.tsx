@@ -174,7 +174,7 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
             </div>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <ImageUploadField label="Photo (optional)" value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
+            <ImageUploadField required value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
             <div>
               <label htmlFor="projectLink" className="mb-1.5 block text-sm font-medium text-foreground">
                 Link (optional)

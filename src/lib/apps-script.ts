@@ -19,6 +19,11 @@ type AppsScriptResponse = AppsScriptSuccess | AppsScriptFailure
  *  which is a definite refusal. */
 class AppsScriptAmbiguousError extends Error {}
 
+/** Actions that carry an image up to Drive. Uploading is by far the slowest
+ *  thing this site asks Google to do, so these get a longer deadline and a
+ *  single attempt (a second one can't fit in the function's 60s). */
+const PHOTO_ACTIONS = new Set(['uploadImage', 'addGalleryImage'])
+
 /**
  * Calls the Google Apps Script Web App that backs every piece of
  * server-managed data on this site (applications, events, announcements,
@@ -50,11 +55,17 @@ async function callAppsScriptOnce<T extends Record<string, unknown>>(
   // build. 15s is generous for a Sheets read but still leaves room for
   // callers' try/catch to fall back to static content.
   //
-  // Writes (add/update/delete/upload) get 45s instead: they only ever run
-  // from the staff portal at request time, never during a build, and a
-  // Drive upload in particular has been seen taking well past 15s — a
-  // timeout there just tells faculty their photo failed when it's merely slow.
-  const timeoutMs = action.startsWith('list') ? 15000 : 45000
+  // Writes only ever run from the staff portal at request time, never during
+  // a build, and a Drive upload in particular has been seen taking ~40s — a
+  // timeout there just tells faculty their photo failed when it's merely
+  // slow. But every write also runs inside a 60s Vercel function (see the
+  // maxDuration on the API routes), so the budget is ONE deadline shared by
+  // both round-trips to Google, not a fresh allowance for each: 50s for the
+  // actions that carry a photo (callWrite gives those a single attempt),
+  // 20s for the rest (so an attempt, a read-back and a retry still fit).
+  const isRead = action.startsWith('list')
+  const writeDeadline = isRead ? null : AbortSignal.timeout(PHOTO_ACTIONS.has(action) ? 50000 : 20000)
+  const signal = () => writeDeadline ?? AbortSignal.timeout(15000)
 
   let res: Response
   try {
@@ -63,12 +74,12 @@ async function callAppsScriptOnce<T extends Record<string, unknown>>(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action, secret, ...payload }),
       redirect: 'manual',
-      signal: AbortSignal.timeout(timeoutMs),
+      signal: signal(),
     })
 
     const location = initial.headers.get('location')
     res = initial.status >= 300 && initial.status < 400 && location
-      ? await fetch(location, { signal: AbortSignal.timeout(timeoutMs) })
+      ? await fetch(location, { signal: signal() })
       : initial
   } catch (err) {
     throw new AppsScriptAmbiguousError(`Apps Script action "${action}" got no reply: ${err instanceof Error ? err.message : err}`, { cause: err })
@@ -131,7 +142,11 @@ const ADD_ACTIONS: Record<string, { list: string; key: string }> = {
 // already gone. Retrying blindly is what previously produced a duplicate
 // gallery row, so each kind of write is handled by whether repeating it is
 // harmless:
-//  - update / upload / register: same input, same result — just retry once.
+//  - update / register: same input, same result — just retry once.
+//  - photo uploads (uploadImage, addGalleryImage): one attempt only — see
+//    PHOTO_ACTIONS. A failed one is reported so the person can try again;
+//    an add still reads the sheet back first, so a lost reply is never
+//    reported as a failure when the row did land.
 //  - delete: retry once; "not found" on the retry means the first try worked.
 //  - add: the row's id is fixed up front, then the sheet is read back to see
 //    whether it landed before anything is repeated. If that read-back itself
@@ -146,7 +161,7 @@ async function callWrite<T extends Record<string, unknown>>(
 
   // `registerForEvent` is safe to repeat: the script answers a second attempt
   // for the same email + event with the existing registration, not a new one.
-  if (!add && !/^(update|delete|upload|register)/.test(action)) return callAppsScriptOnce<T>(action, body)
+  if (!add && !/^(update|delete|register)/.test(action)) return callAppsScriptOnce<T>(action, body)
 
   const attempt = async (): Promise<T> => {
     try {
@@ -166,7 +181,7 @@ async function callWrite<T extends Record<string, unknown>>(
   try {
     return await attempt()
   } catch (err) {
-    if (!(err instanceof AppsScriptAmbiguousError)) throw err
+    if (!(err instanceof AppsScriptAmbiguousError) || PHOTO_ACTIONS.has(action)) throw err
   }
 
   try {

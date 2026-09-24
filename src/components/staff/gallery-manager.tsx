@@ -70,7 +70,9 @@ export function GalleryManager({ initialImages }: { initialImages: SheetGalleryI
         }),
       })
       const body = await res.json().catch(() => null)
-      if (!res.ok) throw new Error(body?.error ?? 'Failed to upload the photo.')
+      // No JSON body means the failure came from the hosting platform (for
+      // example the request ran out of time), not from our own route.
+      if (!res.ok) throw new Error(body?.error ?? `The upload didn't finish (error ${res.status}). Please try again.`)
       if (body?.image) setImages((prev) => [body.image as SheetGalleryImage, ...prev])
       resetForm()
       toast.success('Photo uploaded')

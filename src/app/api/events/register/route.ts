@@ -5,6 +5,12 @@ import { findEventBySlug } from '@/lib/merge-events'
 import { isRegistrationOpen, REGISTRATION_YEARS } from '@/lib/event-registration'
 import type { SheetRegistration } from '@/lib/sheet-types'
 
+// Google Apps Script takes 3-45s to answer (see lib/apps-script.ts), and
+// Vercel cuts a function off at its plan default (often 10s) unless the route
+// says otherwise — which made photo uploads and saves fail with a bare
+// platform error. 60s is the ceiling that is valid on every Vercel plan.
+export const maxDuration = 60
+
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 interface RegisterResult {

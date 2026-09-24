@@ -149,7 +149,7 @@ export function TeamManager({ initialMembers }: { initialMembers: SheetTeamMembe
             />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            <ImageUploadField label="Photo (optional)" value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
+            <ImageUploadField required value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
             <div>
               <label htmlFor="teamContact" className="mb-1.5 block text-sm font-medium text-foreground">
                 Contact (optional)

@@ -526,6 +526,14 @@ function handleListGallery() {
 // wire up five more folder IDs for what is, from Drive's point of view, the
 // same kind of file.
 function uploadImageToDrive(body) {
+  // Re-pasting this file wipes the two settings at the top, and it is easy to
+  // put the wrong value in the wrong line — the secret in GALLERY_FOLDER_ID
+  // made every photo upload fail with Google's "Invalid file or folder ID"
+  // (which also echoed the secret back). Catch that here with a message that
+  // says what to fix and repeats nothing sensitive.
+  if (!GALLERY_FOLDER_ID || GALLERY_FOLDER_ID === SECRET || GALLERY_FOLDER_ID.indexOf('REPLACE_WITH') === 0) {
+    throw new Error('GALLERY_FOLDER_ID is not set to a Drive folder ID.');
+  }
   var folder = DriveApp.getFolderById(GALLERY_FOLDER_ID);
   var bytes = Utilities.base64Decode(body.base64);
   var blob = Utilities.newBlob(bytes, body.mimeType || 'image/jpeg', body.filename || 'photo.jpg');

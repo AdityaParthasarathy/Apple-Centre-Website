@@ -41,7 +41,11 @@ export function ImageUploadField({
         body: JSON.stringify({ base64, mimeType, filename: file.name }),
       })
       const body = await res.json().catch(() => null)
-      if (!res.ok) throw new Error(body?.error ?? 'Failed to upload the photo.')
+      if (!res.ok) {
+        // No JSON body means the failure came from the hosting platform (for
+        // example the request ran out of time), not from our own route.
+        throw new Error(body?.error ?? `The upload didn't finish (error ${res.status}). Please try again.`)
+      }
       onChange(body.url as string)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not upload that image.')

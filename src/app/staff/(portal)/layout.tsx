@@ -7,6 +7,9 @@ import { PortalNav } from '@/components/staff/portal-nav'
 import { SkipLink } from '@/components/patterns/skip-link'
 import { AvatarPlaceholder } from '@/components/ui/avatar-placeholder'
 
+// The staff pages read Apps Script on the server; see the note in the API routes.
+export const maxDuration = 60
+
 export default async function PortalLayout({ children }: { children: React.ReactNode }) {
   const session = await getFacultySession()
   // Middleware already gates /staff/**, but a Server Component shouldn't
