@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { StatefulButton } from '@/components/ui/stateful-button'
+import { PasswordInput } from '@/components/ui/password-input'
 import { inputClass } from '@/lib/utils'
 
 export function LoginForm() {
@@ -58,15 +59,13 @@ export function LoginForm() {
         <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">
           Password
         </label>
-        <input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           required
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className={inputClass}
         />
       </div>
 
