@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { ProjectVisual } from '@/components/ui/project-visual'
 import { AnimatedCtaLink } from '@/components/patterns/motion-link'
-import { isExternalImage } from '@/lib/utils'
+import { isExternalImage, cardImage } from '@/lib/utils'
 import type { Project } from '@/content/projects'
 import { motion } from 'motion/react'
 import Image from 'next/image'
@@ -43,7 +43,7 @@ export function ProjectsSectionClient({ projects }: { projects: Project[] }) {
                   <div className="relative h-40 overflow-hidden">
                     {project.image ? (
                       <Image
-                        src={project.image}
+                        src={cardImage(project.image)}
                         alt={project.title}
                         fill
                         className="object-cover transition-transform duration-500 group-hover:scale-105"

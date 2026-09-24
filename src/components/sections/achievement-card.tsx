@@ -1,7 +1,7 @@
 import Image from 'next/image'
 import { Medal, MapPin, Trophy } from 'lucide-react'
 import { Card } from '@/components/ui/card'
-import { cn, isExternalImage } from '@/lib/utils'
+import { cn, isExternalImage, cardImage } from '@/lib/utils'
 import { achievementTier, type Achievement, type AchievementTier } from '@/content/achievements'
 
 // Text colours are picked for contrast against their own tinted badge
@@ -45,7 +45,7 @@ export function AchievementCard({ achievement, as: Heading = 'h3', clampDescript
       <div className="relative h-40 shrink-0 overflow-hidden">
         {achievement.image ? (
           <Image
-            src={achievement.image}
+            src={cardImage(achievement.image)}
             alt={achievement.title}
             fill
             className="object-cover transition-transform duration-500 group-hover:scale-105"

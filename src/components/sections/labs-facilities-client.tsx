@@ -4,7 +4,7 @@ import { Container } from '@/components/ui/container'
 import { SectionHeading } from '@/components/ui/section-heading'
 import { Card } from '@/components/ui/card'
 import { Keyboard } from '@/components/ui/keyboard'
-import { isExternalImage } from '@/lib/utils'
+import { isExternalImage, cardImage } from '@/lib/utils'
 import type { Facility } from '@/content/facilities'
 import { motion } from 'motion/react'
 import Image from 'next/image'
@@ -38,7 +38,7 @@ export function LabsFacilitiesSectionClient({ facilities }: { facilities: Facili
               <Card className="overflow-hidden group">
                 <div className="relative h-56 overflow-hidden">
                   <Image
-                    src={facility.image}
+                    src={cardImage(facility.image)}
                     alt={facility.title}
                     fill
                     className="object-cover transition-transform duration-500 group-hover:scale-105"

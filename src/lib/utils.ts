@@ -15,3 +15,15 @@ export const inputClass =
 export function isExternalImage(src: string) {
   return src.startsWith("http://") || src.startsWith("https://")
 }
+
+/** Photos staff upload are stored on Google's image host at up to 1600px wide
+ *  (the `=w1600` suffix in their URL), and that host resizes on request. A
+ *  card that shows a photo ~300px wide has no use for the 1600px original —
+ *  on a gallery of phone photos that is several hundred KB each to download and
+ *  decode, all to be drawn small. This asks for `width` instead; anything that
+ *  isn't one of those URLs (local files, other hosts) is returned untouched. */
+export function cardImage(src: string, width = 640) {
+  // A record with no image at all must not take the whole page down with it.
+  if (!src || !src.startsWith("https://lh3.googleusercontent.com/")) return src
+  return src.replace(/=w\d+[^/]*$/, `=w${width}`)
+}

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Calendar, MapPin } from 'lucide-react'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { isExternalImage } from '@/lib/utils'
+import { isExternalImage, cardImage } from '@/lib/utils'
 import type { Event } from '@/content/events'
 import { motion } from 'motion/react'
 
@@ -24,7 +24,7 @@ export function EventsGrid({ events }: { events: Event[] }) {
             <Card className="group h-full overflow-hidden">
               <div className="relative h-40 overflow-hidden">
                 <Image
-                  src={event.image}
+                  src={cardImage(event.image)}
                   alt={event.title}
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-105"

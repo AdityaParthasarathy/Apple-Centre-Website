@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { AvatarPlaceholder } from '@/components/ui/avatar-placeholder'
 import { PageHero } from '@/components/patterns/page-hero'
 import { getAllTeamMembers } from '@/lib/merge-team'
-import { isExternalImage } from '@/lib/utils'
+import { isExternalImage, cardImage } from '@/lib/utils'
 
 export const metadata: Metadata = {
   title: 'Meet the Team | Centre for Apple Technologies',
@@ -35,7 +35,7 @@ export default async function FacultyPage() {
                 <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-xl">
                   {person.image ? (
                     <Image
-                      src={person.image}
+                      src={cardImage(person.image)}
                       alt={person.name}
                       fill
                       className="object-cover"

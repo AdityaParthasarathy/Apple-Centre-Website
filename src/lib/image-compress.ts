@@ -1,5 +1,9 @@
-const MAX_DIMENSION = 1600
-const JPEG_QUALITY = 0.82
+// The photo goes to Drive through Google Apps Script, which is slow enough
+// that upload size shows: 1280px is as wide as any place on the site displays
+// a photo (the widest is the ~1000px event banner) and roughly a third smaller
+// than 1600px, so uploads finish sooner.
+const MAX_DIMENSION = 1280
+const JPEG_QUALITY = 0.8
 
 /** Downscales + re-encodes as JPEG client-side, so uploads stay small and fast
  *  regardless of the original photo's size — a Drive upload through Apps

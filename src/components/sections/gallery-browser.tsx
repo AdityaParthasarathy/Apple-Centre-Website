@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { motion } from 'motion/react'
-import { cn, isExternalImage } from '@/lib/utils'
+import { cn, isExternalImage, cardImage } from '@/lib/utils'
 import { GalleryLightbox } from '@/components/ui/gallery-lightbox'
 import type { GalleryImage } from '@/content/gallery'
 
@@ -62,7 +62,7 @@ export function GalleryBrowser({ images }: { images: GalleryImage[] }) {
             className="group relative h-64 cursor-pointer overflow-hidden rounded-lg"
           >
             <Image
-              src={image.image}
+              src={cardImage(image.image)}
               alt={image.title}
               fill
               className="object-cover transition-transform duration-500 group-hover:scale-110"

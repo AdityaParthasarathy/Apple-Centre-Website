@@ -4,7 +4,7 @@ import { useRef } from 'react'
 import Image from 'next/image'
 import { motion, useTransform } from 'motion/react'
 import { useElementScrollProgress } from '@/hooks/use-scroll-progress'
-import { isExternalImage } from '@/lib/utils'
+import { isExternalImage, cardImage } from '@/lib/utils'
 
 export interface HorizontalScrollCard {
   id: string
@@ -43,7 +43,7 @@ export function HorizontalScrollCarousel({
               className="group relative h-72 w-72 shrink-0 overflow-hidden rounded-2xl bg-muted sm:h-[420px] sm:w-[420px]"
             >
               <Image
-                src={card.image}
+                src={cardImage(card.image)}
                 alt={card.title}
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-110"

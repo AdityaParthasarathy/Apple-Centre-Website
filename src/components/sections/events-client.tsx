@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { EventsCalendar } from '@/components/patterns/events-calendar'
 import type { Event } from '@/content/events'
-import { isExternalImage } from '@/lib/utils'
+import { isExternalImage, cardImage } from '@/lib/utils'
 import { motion } from 'motion/react'
 import { Calendar, MapPin } from 'lucide-react'
 
@@ -69,7 +69,7 @@ export function EventsSectionClient({ events }: { events: Event[] }) {
                     <Card className="flex gap-4 p-4">
                       <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg">
                         <Image
-                          src={event.image}
+                          src={cardImage(event.image)}
                           alt=""
                           fill
                           className="object-cover"

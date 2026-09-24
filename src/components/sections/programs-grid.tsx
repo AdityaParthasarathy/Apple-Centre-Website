@@ -4,7 +4,7 @@ import Image from 'next/image'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { AnimatedCtaLink } from '@/components/patterns/motion-link'
-import { isExternalImage } from '@/lib/utils'
+import { isExternalImage, cardImage } from '@/lib/utils'
 import type { Program } from '@/content/programs'
 import { motion } from 'motion/react'
 
@@ -31,7 +31,7 @@ export function ProgramsGrid({ programs }: { programs: Program[] }) {
           <Card className="flex h-full flex-col overflow-hidden">
             <div className="relative h-48">
               <Image
-                src={program.image}
+                src={cardImage(program.image)}
                 alt={program.title}
                 fill
                 className="object-cover"
