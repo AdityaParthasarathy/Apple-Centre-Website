@@ -24,6 +24,24 @@ export function isExternalImage(src: string) {
  *  isn't one of those URLs (local files, other hosts) is returned untouched. */
 export function cardImage(src: string, width = 640) {
   // A record with no image at all must not take the whole page down with it.
-  if (!src || !src.startsWith("https://lh3.googleusercontent.com/")) return src
+  if (!src) return src
+  // Photos kept in Vercel Blob come with a 640px copy beside the full picture
+  // (see lib/photo-storage.ts); a card asks for that one.
+  if (width <= 640 && /^https:\/\/[^/]+\.blob\.vercel-storage\.com\/photos\/[^/]+\.jpg$/.test(src) && !src.endsWith("-640.jpg")) {
+    return src.replace(/\.jpg$/, "-640.jpg")
+  }
+  if (!src.startsWith("https://lh3.googleusercontent.com/")) return src
   return src.replace(/=w\d+[^/]*$/, `=w${width}`)
+}
+
+/** "Energize Hackathon 2026!" -> "energize-hackathon-2026": a name as it appears in a web address. */
+export function slugify(text: string) {
+  return text
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60)
+    .replace(/-+$/, "")
 }

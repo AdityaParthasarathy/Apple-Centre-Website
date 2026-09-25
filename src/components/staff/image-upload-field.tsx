@@ -35,12 +35,20 @@ export function ImageUploadField({
     setUploading(true)
     try {
       const { base64, mimeType } = await compressImage(file)
-      const res = await fetch('/api/staff/upload', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ base64, mimeType, filename: file.name }),
-      })
-      const body = await res.json().catch(() => null)
+      const send = () =>
+        fetch('/api/staff/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64, mimeType, filename: file.name }),
+        })
+      let res = await send()
+      let body = await res.json().catch(() => null)
+      // Google sometimes drops the reply to an upload; when the server says
+      // nothing was saved, sending it again is safe.
+      for (let again = 0; !res.ok && body?.retryable === true && again < 2; again++) {
+        res = await send()
+        body = await res.json().catch(() => null)
+      }
       if (!res.ok) {
         // No JSON body means the failure came from the hosting platform (for
         // example the request ran out of time), not from our own route.

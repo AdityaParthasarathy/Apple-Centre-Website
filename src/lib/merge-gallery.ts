@@ -9,6 +9,7 @@ function sheetImageToGalleryImage(img: SheetGalleryImage): GalleryImage {
     description: img.description,
     image: img.image,
     category: img.category,
+    album: img.album || undefined,
     date: new Date(img.date),
   }
 }

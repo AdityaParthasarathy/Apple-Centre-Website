@@ -34,7 +34,22 @@ export interface SheetGalleryImage {
   description: string
   image: string
   category: 'workshop' | 'event' | 'facility' | 'community'
+  /** The id of the folder (SheetAlbum) this photo is in; empty when it is in none. */
+  album?: string
   date: string
+  createdBy?: string
+  createdAt?: string
+}
+
+/** A named folder of gallery photos. */
+export interface SheetAlbum {
+  id: string
+  name: string
+  /** The folder's address on the public site (/gallery/<slug>); set once, never changed. */
+  slug: string
+  description: string
+  /** The address of the photo chosen as the folder's cover; empty = its newest photo. */
+  cover: string
   createdBy?: string
   createdAt?: string
 }

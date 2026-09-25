@@ -7,13 +7,15 @@ interface PageHeroProps {
   title: string
   subtitle: string
   image: string
+  /** Shown above the title, e.g. a back button. */
+  children?: React.ReactNode
 }
 
 // Shared photographic header for secondary pages — same dark-scrim
 // language as the homepage hero (real Centre photography, not decoration),
 // so Programs/Projects/Events/Gallery/Team each open on an actual place
 // instead of the identical plain white banner they used to share.
-export function PageHero({ title, subtitle, image }: PageHeroProps) {
+export function PageHero({ title, subtitle, image, children }: PageHeroProps) {
   return (
     <section className="relative overflow-hidden py-24 sm:py-32">
       <div className="absolute inset-0 -z-10">
@@ -21,6 +23,7 @@ export function PageHero({ title, subtitle, image }: PageHeroProps) {
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(11,11,15,0.85)_0%,rgba(11,11,15,0.75)_55%,rgba(11,11,15,0.92)_100%)]" />
       </div>
       <Container>
+        {children && <div className="mb-10">{children}</div>}
         <div className="max-w-2xl">
           <SectionHeading as="h1" size="xl" className="text-white">
             {title}

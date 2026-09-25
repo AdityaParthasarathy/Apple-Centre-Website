@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next'
 import { getAllProjects } from '@/lib/merge-projects'
 import { getAllEvents } from '@/lib/merge-events'
+import { getAllAlbums } from '@/lib/merge-albums'
 
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://apple-centre-website.vercel.app'
 
@@ -12,7 +13,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })
   )
 
-  const [projects, events] = await Promise.all([getAllProjects(), getAllEvents()])
+  const [projects, events, albums] = await Promise.all([getAllProjects(), getAllEvents(), getAllAlbums()])
 
   const projectRoutes = projects.map((project) => ({
     url: `${baseUrl}/projects/${project.id}`,
@@ -24,5 +25,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: event.date,
   }))
 
-  return [...staticRoutes, ...projectRoutes, ...eventRoutes]
+  const albumRoutes = albums.map((album) => ({
+    url: `${baseUrl}/gallery/${album.slug}`,
+    lastModified: new Date(),
+  }))
+
+  return [...staticRoutes, ...projectRoutes, ...eventRoutes, ...albumRoutes]
 }

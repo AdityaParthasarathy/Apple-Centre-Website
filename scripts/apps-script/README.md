@@ -138,3 +138,21 @@ falls back to the Apps Script, so this can't break anything.
    again.
 
 Saves also refresh the public pages straight away now, rather than within a minute.
+
+## Fast photo storage (Vercel Blob) — optional, recommended
+
+Saving a photo to Drive through the Apps Script takes anywhere from 4 to 60
+seconds and sometimes loses its reply. Vercel's own file storage ("Blob") saves
+a photo in well under a second, every time. It is off until you switch it on,
+and if it is ever unavailable the site quietly uses Drive as before.
+
+1. In Vercel, open the project → **Storage** → **Create Database / Store** →
+   **Blob**. Choose **Public** access (photos on a website have to be public),
+   give it any name, and connect it to this project (all environments).
+2. That adds a setting called `BLOB_READ_WRITE_TOKEN` to the project by itself.
+   **Redeploy** so the site picks it up.
+3. Done: new photos are saved there. Photos already in Drive keep working
+   exactly as they are — nothing is moved or changed.
+
+Each photo is saved twice, the picture and a 640px copy beside it, so pages
+full of photos load quickly.

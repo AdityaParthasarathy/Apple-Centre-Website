@@ -15,7 +15,7 @@ const CATEGORIES: Array<{ id: GalleryImage['category'] | 'all'; label: string }>
   { id: 'community', label: 'Community' },
 ]
 
-export function GalleryBrowser({ images }: { images: GalleryImage[] }) {
+export function GalleryBrowser({ images, showFilters = true }: { images: GalleryImage[]; showFilters?: boolean }) {
   const [activeCategory, setActiveCategory] = useState<GalleryImage['category'] | 'all'>('all')
   const [activeIndex, setActiveIndex] = useState<number | null>(null)
 
@@ -26,6 +26,7 @@ export function GalleryBrowser({ images }: { images: GalleryImage[] }) {
 
   return (
     <div>
+      {showFilters && (
       <div className="mb-10 flex flex-wrap gap-2">
         {CATEGORIES.map((category) => (
           <button
@@ -44,6 +45,7 @@ export function GalleryBrowser({ images }: { images: GalleryImage[] }) {
           </button>
         ))}
       </div>
+      )}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((image, idx) => (
@@ -79,7 +81,7 @@ export function GalleryBrowser({ images }: { images: GalleryImage[] }) {
 
       {filtered.length === 0 && (
         <p className="py-16 text-center text-sm text-muted-foreground">
-          No photos in this category yet.
+          {showFilters ? 'No photos in this category yet.' : 'No photos in this folder yet.'}
         </p>
       )}
 

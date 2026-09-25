@@ -36,6 +36,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Title, category, and an image are required.' }, { status: 400 })
   }
 
+  if ('album' in body && (typeof body.album !== 'string' || body.album.length > 64)) {
+    return NextResponse.json({ error: 'Invalid folder.' }, { status: 400 })
+  }
+
   try {
     const result = await callAppsScript<{ image: SheetGalleryImage }>('addGalleryImage', {
       ...body,

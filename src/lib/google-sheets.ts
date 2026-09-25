@@ -118,15 +118,27 @@ interface Tab {
   rows: TabRow[]
 }
 
-async function readTab(name: string): Promise<Tab> {
+// Tabs the site makes for itself the first time it needs them, so there is no
+// manual sheet setup for these features.
+const AUTO_TABS: Record<string, string[]> = {
+  Registrations: ['id', 'eventId', 'eventTitle', 'eventDate', 'name', 'email', 'phone', 'college', 'year', 'registeredAt'],
+  Albums: ['id', 'name', 'slug', 'description', 'cover', 'createdBy', 'createdAt'],
+}
+
+/** `create`: make the tab if it is missing (writes always do; a plain read of
+ *  a tab that doesn't exist yet just comes back empty, so looking at the site
+ *  never changes the sheet — except Registrations, which has always made
+ *  itself on first look). */
+async function readTab(name: string, create = name === 'Registrations'): Promise<Tab> {
   let data: { values?: unknown[][] }
   try {
     data = await api(valuesPath(quote(name)) + '?valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=SERIAL_NUMBER')
   } catch (err) {
     if (err instanceof TabMissingError) {
-      if (name !== 'Registrations') throw new Error(`Sheet tab "${name}" not found. See README.md.`)
-      await createRegistrationsTab()
-      return { name, headers: REGISTRATION_HEADERS, rows: [] }
+      const headers = AUTO_TABS[name]
+      if (!headers) throw new Error(`Sheet tab "${name}" not found. See README.md.`)
+      if (create) await createTab(name, headers)
+      return { name, headers, rows: [] }
     }
     throw err
   }
@@ -238,9 +250,21 @@ function colLetter(index: number): string {
   return s
 }
 
-async function appendRow(tabName: string, row: Obj): Promise<void> {
+/** A column added to an existing tab after the sheet was first set up (the
+ *  Gallery's `album`). If it isn't there yet, its heading is written into the
+ *  next free cell of the header row. */
+async function ensureColumns(tab: Tab, columns: string[]): Promise<void> {
+  for (const column of columns) {
+    if (tab.headers.includes(column)) continue
+    await api(valuesPath(`${quote(tab.name)}!${colLetter(tab.headers.length)}1`) + `?${RAW}`, { method: 'PUT', body: { values: [[column]] } })
+    tab.headers.push(column)
+  }
+}
+
+async function appendRow(tabName: string, row: Obj, extraColumns: string[] = []): Promise<void> {
   return inQueue(tabName, async () => {
-    const tab = await readTab(tabName)
+    const tab = await readTab(tabName, true)
+    await ensureColumns(tab, extraColumns)
     // An id already in the sheet means this exact add already happened — the
     // website derives an add's id from its content and repeats it when a reply
     // is lost — so it is skipped rather than added twice.
@@ -253,13 +277,14 @@ async function appendRow(tabName: string, row: Obj): Promise<void> {
   })
 }
 
-async function updateRowById(tabName: string, id: unknown, updates: Obj): Promise<boolean> {
+async function updateRowById(tabName: string, id: unknown, updates: Obj, extraColumns: string[] = []): Promise<boolean> {
   return inQueue(tabName, async () => {
-    const tab = await readTab(tabName)
+    const tab = await readTab(tabName, true)
     if (!tab.headers.includes('id')) throw new Error(`Sheet "${tabName}" has no "id" column.`)
     const zone = (await getMeta()).timeZone
     const hit = tab.rows.find((r) => idsMatch(r.obj.id, id, zone))
     if (!hit) return false
+    await ensureColumns(tab, extraColumns.filter((c) => c in updates))
     const data = Object.keys(updates)
       .filter((key) => tab.headers.includes(key))
       .map((key) => ({
@@ -275,7 +300,7 @@ async function updateRowById(tabName: string, id: unknown, updates: Obj): Promis
 
 async function deleteRowById(tabName: string, id: unknown): Promise<boolean> {
   return inQueue(tabName, async () => {
-    const tab = await readTab(tabName)
+    const tab = await readTab(tabName, true)
     if (!tab.headers.includes('id')) throw new Error(`Sheet "${tabName}" has no "id" column.`)
     const zone = (await getMeta()).timeZone
     const hit = tab.rows.find((r) => idsMatch(r.obj.id, id, zone))
@@ -306,6 +331,8 @@ interface Entity {
   /** The key the add reply carries the new row under. */
   key: string
   notFound: string
+  /** Columns the tab may not have yet; they are added when first written to. */
+  extraColumns?: string[]
   read: (row: Obj, zone: string) => Obj
   build: (body: Obj) => Obj
 }
@@ -376,12 +403,14 @@ const ENTITIES: Record<string, Entity> = {
     tab: 'Gallery',
     key: 'image',
     notFound: 'Photo not found.',
+    extraColumns: ['album'],
     read: (row, zone) => ({
       id: row.id,
       title: row.title,
       description: row.description,
       image: normalizeDriveImageUrl(row.image),
       category: row.category,
+      album: String(row.album ?? ''),
       date: dateOnly(row.date),
       createdBy: row.createdBy,
       createdAt: isoString(row.createdAt, zone),
@@ -394,7 +423,31 @@ const ENTITIES: Record<string, Entity> = {
       description: body.description || '',
       image: body.image,
       category: body.category,
+      album: body.album || '',
       date: now().slice(0, 10),
+      createdBy: by(body),
+      createdAt: now(),
+    }),
+  },
+  Album: {
+    tab: 'Albums',
+    key: 'album',
+    notFound: 'Folder not found.',
+    read: (row, zone) => ({
+      id: row.id,
+      name: row.name,
+      slug: String(row.slug ?? ''),
+      description: row.description || '',
+      cover: row.cover || '',
+      createdBy: row.createdBy,
+      createdAt: isoString(row.createdAt, zone),
+    }),
+    build: (body) => ({
+      id: body.id || randomUUID(),
+      name: body.name,
+      slug: body.slug,
+      description: body.description || '',
+      cover: body.cover || '',
       createdBy: by(body),
       createdAt: now(),
     }),
@@ -565,17 +618,15 @@ const APPLICATION_FIELDS = [
   'project3Screenshot',
 ]
 
-const REGISTRATION_HEADERS = ['id', 'eventId', 'eventTitle', 'eventDate', 'name', 'email', 'phone', 'college', 'year', 'registeredAt']
-
 // Created on first use, like the script did, so there is no manual setup.
-async function createRegistrationsTab() {
+async function createTab(name: string, headers: string[]) {
   try {
-    await api(sheetPath(':batchUpdate'), { method: 'POST', body: { requests: [{ addSheet: { properties: { title: 'Registrations' } } }] } })
+    await api(sheetPath(':batchUpdate'), { method: 'POST', body: { requests: [{ addSheet: { properties: { title: name } } }] } })
   } catch (err) {
-    // Two first signups at once: the other one created it.
+    // Two first uses at once: the other one created it.
     if (!(err instanceof Error) || !/already exists/i.test(err.message)) throw err
   }
-  await api(valuesPath(`${quote('Registrations')}!A1`) + `?${RAW}`, { method: 'PUT', body: { values: [REGISTRATION_HEADERS] } })
+  await api(valuesPath(`${quote(name)}!A1`) + `?${RAW}`, { method: 'PUT', body: { values: [headers] } })
   meta = null
 }
 
@@ -686,9 +737,28 @@ export async function sheetsAction(action: string, body: Obj): Promise<Obj> {
   return withRetries(action, () => dispatch(action, body))
 }
 
+/** Deleting a folder never deletes its photos — they go back to being unfiled. */
+async function deleteAlbum(id: unknown): Promise<Obj> {
+  await deleteRowById('Albums', id)
+  await inQueue('Gallery', async () => {
+    const gallery = await readTab('Gallery')
+    const col = gallery.headers.indexOf('album')
+    if (col === -1) return
+    const data = gallery.rows
+      .filter((r) => String(r.obj.album ?? '') === String(id))
+      .map((r) => ({ range: `${quote('Gallery')}!${colLetter(col)}${r.sheetRow}`, values: [['']] }))
+    if (data.length) await api(sheetPath('/values:batchUpdate'), { method: 'POST', body: { valueInputOption: 'RAW', data } })
+  })
+  // Gone is gone: a repeat of a delete that already worked is not an error,
+  // so a folder that is not found still counts as deleted.
+  return ok()
+}
+
 async function dispatch(action: string, body: Obj): Promise<Obj> {
+  if (action === 'deleteAlbum') return deleteAlbum(body.id)
+
   // ---- generic: list / add / update / delete for each content tab ----
-  const generic = /^(list|add|update|delete)(Events?|Announcements?|GalleryImage|Gallery|Projects?|Achievements?|TeamMembers?|Programs?|Facilit(?:ies|y))$/.exec(action)
+  const generic = /^(list|add|update|delete)(Events?|Announcements?|GalleryImage|Gallery|Albums?|Projects?|Achievements?|TeamMembers?|Programs?|Facilit(?:ies|y))$/.exec(action)
   if (generic) {
     const [, verb, noun] = generic
     const entity = ENTITIES[SINGULAR[noun] ?? noun]
@@ -699,12 +769,12 @@ async function dispatch(action: string, body: Obj): Promise<Obj> {
       }
       if (verb === 'add') {
         const row = entity.build(body)
-        await appendRow(entity.tab, row)
+        await appendRow(entity.tab, row, entity.extraColumns)
         // Reply with what the sheet would say back for this row.
         return ok({ [entity.key]: row })
       }
       if (verb === 'update') {
-        return (await updateRowById(entity.tab, body.id, updatesFrom(body))) ? ok() : fail(entity.notFound)
+        return (await updateRowById(entity.tab, body.id, updatesFrom(body), entity.extraColumns)) ? ok() : fail(entity.notFound)
       }
       return (await deleteRowById(entity.tab, body.id)) ? ok() : fail(entity.notFound)
     }
@@ -770,6 +840,7 @@ const SINGULAR: Record<string, string> = {
   Events: 'Event',
   Announcements: 'Announcement',
   Gallery: 'GalleryImage',
+  Albums: 'Album',
   Projects: 'Project',
   Achievements: 'Achievement',
   TeamMembers: 'TeamMember',

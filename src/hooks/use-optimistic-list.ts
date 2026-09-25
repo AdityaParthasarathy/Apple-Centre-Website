@@ -20,6 +20,8 @@ interface Config {
   noun: string
   /** New items go at the top (default) or the bottom of the list. */
   addAt?: 'start' | 'end'
+  /** How many more times to send an add the server says saved nothing (photo uploads, when Google drops the reply). */
+  retries?: number
 }
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
@@ -42,7 +44,7 @@ export function useLatest<T>(value: T) {
   return ref
 }
 
-export function useOptimisticList<T extends { id: string }>(initial: T[], { endpoint, itemKey, noun, addAt = 'start' }: Config) {
+export function useOptimisticList<T extends { id: string }>(initial: T[], { endpoint, itemKey, noun, addAt = 'start', retries = 0 }: Config) {
   const [items, setItems] = useState<T[]>(initial)
   const [pending, setPending] = useState<ReadonlySet<string>>(new Set())
   // The latest list, for rollbacks that need to know where an item was.
@@ -57,13 +59,30 @@ export function useOptimisticList<T extends { id: string }>(initial: T[], { endp
     })
   }, [])
 
+  /** Shows several drafts at once, all marked "saving", ahead of their turns
+   *  in a queue — pass `{ staged: true }` to `add` for each of them. */
+  const stage = useCallback(
+    (drafts: T[]) => {
+      setItems((prev) => (addAt === 'start' ? [...drafts, ...prev] : [...prev, ...drafts]))
+      setPending((prev) => new Set([...prev, ...drafts.map((d) => d.id)]))
+    },
+    [addAt]
+  )
+
   /** `draft` (with a temporary id) is shown straight away; the server's own row replaces it. */
   const add = useCallback(
-    async (payload: unknown, draft: T): Promise<SaveResult> => {
-      setItems((prev) => (addAt === 'start' ? [draft, ...prev] : [...prev, draft]))
-      setPendingId(draft.id, true)
+    async (payload: unknown, draft: T, { staged = false }: { staged?: boolean } = {}): Promise<SaveResult> => {
+      if (!staged) {
+        setItems((prev) => (addAt === 'start' ? [draft, ...prev] : [...prev, draft]))
+        setPendingId(draft.id, true)
+      }
       try {
-        const { ok, body } = await send(endpoint, 'POST', payload)
+        let { ok, body } = await send(endpoint, 'POST', payload)
+        // The tile stays up as "Uploading…" while a photo the server could
+        // not store is sent again.
+        for (let again = 0; !ok && body?.retryable === true && again < retries; again++) {
+          ;({ ok, body } = await send(endpoint, 'POST', payload))
+        }
         if (!ok) throw new Error((body?.error as string) ?? `Failed to save the ${noun}.`)
         const saved = body?.[itemKey] as T | undefined
         setItems((prev) => prev.map((item) => (item.id === draft.id ? (saved ?? draft) : item)))
@@ -75,7 +94,7 @@ export function useOptimisticList<T extends { id: string }>(initial: T[], { endp
         setPendingId(draft.id, false)
       }
     },
-    [endpoint, itemKey, noun, addAt, setPendingId]
+    [endpoint, itemKey, noun, addAt, retries, setPendingId]
   )
 
   /** `next` replaces the item on screen at once; on failure the old one comes back. */
@@ -122,7 +141,7 @@ export function useOptimisticList<T extends { id: string }>(initial: T[], { endp
     [endpoint, noun, latest]
   )
 
-  return { items, setItems, pending, add, update, remove }
+  return { items, setItems, pending, stage, add, update, remove }
 }
 
 /** A throwaway id for an item that exists only on screen until the server confirms it. */

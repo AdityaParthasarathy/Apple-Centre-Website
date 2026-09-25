@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto'
 import { revalidateTag, unstable_cache } from 'next/cache'
 import { isDirectSheetsConfigured, SheetsAccessError } from '@/lib/google-auth'
 import { sheetsAction } from '@/lib/google-sheets'
+import { storePhoto } from '@/lib/photo-storage'
 
 interface AppsScriptSuccess {
   success: true
@@ -41,6 +42,11 @@ export const PHOTO_NOT_SAVED = 'The photo did not finish uploading to Drive'
 const WRITE_BUDGET_MS = 58_000
 const ATTEMPT_MS = 14_000
 const PHOTO_ATTEMPT_MS = 40_000
+// Measured on the real Drive: an upload normally answers in 4-6s, and about one
+// in five stalls until it is given up on (the file is in Drive by then; only
+// the reply is lost). So the first try is not waited on for long — a second
+// try costs about 5s, where waiting out a stall costs 30 or more.
+const FIRST_UPLOAD_MS = 18_000
 
 // Two ways to reach the spreadsheet, chosen by what is configured:
 //  - DIRECT (GOOGLE_SERVICE_ACCOUNT_JSON + GOOGLE_SHEET_ID set): Google's
@@ -57,6 +63,11 @@ const PHOTO_ATTEMPT_MS = 40_000
 // so the next read, and the public pages built from it, show the change.
 const SHEET_TAG = 'sheet-data'
 const MUTATION = /^(add|update|delete|register|logApplication)/
+
+// Photo folders exist only in the direct route: the Apps Script has no idea of
+// them. Without the direct connection they are simply unavailable (the public
+// gallery then shows every photo as before).
+const NEEDS_DIRECT = /Album|^updateGalleryImage$/
 
 /**
  * Runs an action through the Sheets API. Null means "not available, use
@@ -199,6 +210,7 @@ const ADD_ACTIONS: Record<string, { list: string; key: string }> = {
   addTeamMember: { list: 'listTeamMembers', key: 'member' },
   addProgram: { list: 'listPrograms', key: 'program' },
   addFacility: { list: 'listFacilities', key: 'facility' },
+  addAlbum: { list: 'listAlbums', key: 'album' },
 }
 
 // Google's occasional lost reply (see AppsScriptAmbiguousError) has
@@ -224,6 +236,9 @@ async function callWrite<T extends Record<string, unknown>>(
   action: string,
   payload: Record<string, unknown>
 ): Promise<T> {
+  // Every picture goes through the same careful upload, wherever it is headed.
+  if (action === 'uploadImage') return (await uploadPhoto(payload)) as unknown as T
+
   const add = ADD_ACTIONS[action]
   const body = add && !payload.id ? { ...payload, id: contentId(action, payload) } : payload
 
@@ -281,6 +296,37 @@ async function callWrite<T extends Record<string, unknown>>(
 }
 
 /**
+ * The picture into Drive, through the script (the only thing that can store
+ * files there). Google's replies to these calls are sometimes lost or come back
+ * as an error page even though nothing is wrong with the picture — seen most
+ * when several go up at once — and a lost reply here costs nothing but the
+ * wait (at worst an unused file in Drive), so one further try is made within
+ * the function's time. If both fail the error says nothing was saved, which is
+ * true, and marks it safe for the browser to try again.
+ */
+async function uploadPhoto(payload: Record<string, unknown>): Promise<{ url: string }> {
+  // Vercel Blob first, when it is set up: sub-second and reliable. Anything it
+  // can't take (a document, or a failure) carries on to Drive below.
+  const stored = await storePhoto(payload)
+  if (stored) return stored
+
+  const started = Date.now()
+  let last: unknown
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const left = WRITE_BUDGET_MS - (Date.now() - started)
+    if (attempt > 0 && left < 12_000) break
+    try {
+      return await callAppsScriptOnce<{ url: string }>('uploadImage', payload, attempt === 0 ? FIRST_UPLOAD_MS : left)
+    } catch (err) {
+      last = err
+      // A definite refusal (say, a bad folder setting) won't change on a repeat.
+      if (!(err instanceof AppsScriptAmbiguousError)) throw err
+    }
+  }
+  throw new Error(`${PHOTO_NOT_SAVED}: ${last instanceof Error ? last.message : String(last)}`, { cause: last })
+}
+
+/**
  * A gallery photo, direct route: the picture goes to Drive through the script
  * (the only thing that can store files there), then the row is written straight
  * to the sheet. Splitting them means a lost reply from the upload leaves no
@@ -289,19 +335,7 @@ async function callWrite<T extends Record<string, unknown>>(
  * the whole thing, as before.
  */
 async function addGalleryImageDirect(body: Record<string, unknown>): Promise<Record<string, unknown> | null> {
-  let uploaded: { url: string }
-  try {
-    uploaded = await callAppsScriptOnce<{ url: string }>('uploadImage', {
-      base64: body.base64,
-      mimeType: body.mimeType,
-      filename: body.filename,
-    })
-  } catch (err) {
-    if (err instanceof AppsScriptAmbiguousError) {
-      throw new Error(`${PHOTO_NOT_SAVED}: ${err.message}`, { cause: err })
-    }
-    throw err
-  }
+  const uploaded = await uploadPhoto({ base64: body.base64, mimeType: body.mimeType, filename: body.filename })
   // The sheet row stores the picture's address, not the picture.
   const row: Record<string, unknown> = { ...body, image: uploaded.url }
   delete row.base64
@@ -325,6 +359,10 @@ export async function callAppsScript<T extends Record<string, unknown> = Record<
   // Still retried, shared while in flight, and served from lastGood on failure.
   { fresh = false }: { fresh?: boolean } = {}
 ): Promise<T> {
+  if (NEEDS_DIRECT.test(action) && !isDirectSheetsConfigured()) {
+    throw new Error('Photo folders need the direct Google Sheets connection, which is not set up.')
+  }
+
   // Only read-only `list*` actions are cached/shared. Writes are never
   // served from a cache; they get their own careful retry in callWrite.
   if (!action.startsWith('list')) {

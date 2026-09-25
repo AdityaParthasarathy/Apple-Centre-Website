@@ -4,6 +4,8 @@ export interface GalleryImage {
   description: string
   image: string
   category: 'workshop' | 'event' | 'facility' | 'community'
+  /** Id of the folder it belongs to, if any (see lib/merge-albums.ts). */
+  album?: string
   date: Date
 }
 

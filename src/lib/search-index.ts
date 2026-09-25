@@ -4,6 +4,7 @@ import { getAllEvents } from '@/lib/merge-events'
 import { getAllTeamMembers } from '@/lib/merge-team'
 import { getAllFacilities } from '@/lib/merge-facilities'
 import { getAllGalleryImages } from '@/lib/merge-gallery'
+import { getAllAlbums } from '@/lib/merge-albums'
 import { getAllAchievements } from '@/lib/merge-achievements'
 import { callAppsScript } from '@/lib/apps-script'
 import type { SheetAnnouncement } from '@/lib/sheet-types'
@@ -33,13 +34,14 @@ async function loadPublishedAnnouncements(): Promise<SheetAnnouncement[]> {
  *  should pass them in here rather than triggering a second live round-trip
  *  to the same sheet. */
 export async function buildSearchIndex(preloaded: { programs?: Program[] } = {}): Promise<SearchItem[]> {
-  const [programs, projects, events, faculty, facilities, gallery, achievements, announcements] = await Promise.all([
+  const [programs, projects, events, faculty, facilities, gallery, albums, achievements, announcements] = await Promise.all([
     preloaded.programs ?? getAllPrograms(),
     getAllProjects(),
     getAllEvents(),
     getAllTeamMembers(),
     getAllFacilities(),
     getAllGalleryImages(),
+    getAllAlbums(),
     getAllAchievements(),
     loadPublishedAnnouncements(),
   ])
@@ -92,6 +94,14 @@ export async function buildSearchIndex(preloaded: { programs?: Program[] } = {})
       category: 'Gallery' as const,
       href: '/gallery',
       keywords: [g.category],
+    })),
+    ...albums.map((a) => ({
+      id: `album-${a.id}`,
+      title: a.name,
+      description: a.description || `${a.photos.length} photos`,
+      category: 'Gallery' as const,
+      href: `/gallery/${a.slug}`,
+      keywords: ['folder', 'album', 'photos'],
     })),
     ...achievements.map((a) => ({
       id: `achievement-${a.id}`,
