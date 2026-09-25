@@ -6,11 +6,12 @@ import sharp from 'sharp'
 //
 // Google's script takes 4-60s to save a picture to Drive, and every so often
 // loses its reply. Vercel Blob is file storage built for exactly this: a photo
-// is saved in a fraction of a second, reliably. It is switched on by one
-// setting, BLOB_READ_WRITE_TOKEN (created when a Blob store is attached to the
-// project in Vercel); without it, or if a save here ever fails, the photo goes
-// to Drive through the script as it always has, so turning this on cannot make
-// anything worse.
+// is saved in a fraction of a second, reliably. It is on whenever a Blob store
+// is attached to the project in Vercel, which adds either BLOB_STORE_ID (newer
+// stores: the site then signs in with the token Vercel hands every deployment)
+// or BLOB_READ_WRITE_TOKEN (older ones). Without one of them, or if a save here
+// ever fails, the photo goes to Drive through the script as it always has, so
+// turning this on cannot make anything worse.
 //
 // Each photo is stored twice, the picture as sent (already scaled to 1280px in
 // the browser) and a 640px copy next to it — same address with "-640" before
@@ -26,7 +27,7 @@ export const THUMB_WIDTH = 640
 const BLOB_DEADLINE_MS = 10_000
 
 export function isPhotoStorageConfigured() {
-  return !!process.env.BLOB_READ_WRITE_TOKEN
+  return !!process.env.BLOB_READ_WRITE_TOKEN || !!process.env.BLOB_STORE_ID
 }
 
 /** Saves a picture; null means "not available, use Drive". Only pictures: a

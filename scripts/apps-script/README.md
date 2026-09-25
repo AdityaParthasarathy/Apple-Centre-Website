@@ -149,8 +149,9 @@ and if it is ever unavailable the site quietly uses Drive as before.
 1. In Vercel, open the project → **Storage** → **Create Database / Store** →
    **Blob**. Choose **Public** access (photos on a website have to be public),
    give it any name, and connect it to this project (all environments).
-2. That adds a setting called `BLOB_READ_WRITE_TOKEN` to the project by itself.
-   **Redeploy** so the site picks it up.
+2. That adds settings to the project by itself (`BLOB_STORE_ID` and
+   `BLOB_WEBHOOK_PUBLIC_KEY` on current stores, or `BLOB_READ_WRITE_TOKEN` on
+   older ones). **Redeploy** so the site picks them up.
 3. Done: new photos are saved there. Photos already in Drive keep working
    exactly as they are — nothing is moved or changed.
 
