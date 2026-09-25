@@ -9,6 +9,7 @@ import React, {
 } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
 import { cn } from '@/lib/utils'
+import { playKeySound } from '@/lib/key-sound'
 import {
   SunDim,
   Sun,
@@ -30,10 +31,15 @@ import {
   ChevronDown,
 } from 'lucide-react'
 
-// Adapted from the Aceternity keyboard demo, with the sound layer removed
-// (no click sample shipped with this repo — see the plan) and icons
-// swapped from @tabler/icons-react to lucide-react, already this site's
-// only icon dependency.
+// Adapted from the Aceternity keyboard demo, with icons swapped from
+// @tabler/icons-react to lucide-react (already this site's only icon
+// dependency). Its click sample is replaced by a sound synthesised in the
+// browser — see lib/key-sound.ts — so there is no audio file to ship.
+
+/** Typing into a text box shouldn't make the keyboard on the page click. */
+const isTypingTarget = (target: EventTarget | null) =>
+  target instanceof HTMLElement &&
+  (target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName))
 
 const KEY_DISPLAY_LABELS: Record<string, string> = {
   Escape: 'esc',
@@ -131,9 +137,13 @@ const KeyboardProvider = ({
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return
+      if (!isTypingTarget(e.target)) playKeySound('down', e.code)
       setPressed(e.code)
     }
-    const handleKeyUp = (e: KeyboardEvent) => setReleased(e.code)
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (!isTypingTarget(e.target)) playKeySound('up', e.code)
+      setReleased(e.code)
+    }
 
     document.addEventListener('keydown', handleKeyDown)
     document.addEventListener('keyup', handleKeyUp)
@@ -349,8 +359,16 @@ function useKeyPress(keyCode?: string) {
   const { pressedKeys, setPressed, setReleased } = useKeyboardState()
   const isPressed = keyCode ? pressedKeys.has(keyCode) : false
 
-  const handleMouseDown = () => keyCode && setPressed(keyCode)
-  const handleMouseUp = () => keyCode && isPressed && setReleased(keyCode)
+  const handleMouseDown = () => {
+    if (!keyCode) return
+    playKeySound('down', keyCode)
+    setPressed(keyCode)
+  }
+  const handleMouseUp = () => {
+    if (!keyCode || !isPressed) return
+    playKeySound('up', keyCode)
+    setReleased(keyCode)
+  }
   const handleMouseLeave = () => keyCode && isPressed && setReleased(keyCode)
 
   return { isPressed, handleMouseDown, handleMouseUp, handleMouseLeave }
