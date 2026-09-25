@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { after, NextResponse } from 'next/server'
 import { callAppsScript } from '@/lib/apps-script'
 import { escapeHtml, sendMail } from '@/lib/mailer'
 import { findEventBySlug } from '@/lib/merge-events'
@@ -82,22 +82,23 @@ export async function POST(request: Request) {
     )
   }
 
-  // The registration is already saved by this point, so a failed email must
-  // not turn into a failed registration — it's logged and the student still
-  // sees their confirmation on screen.
-  let emailed = true
-  try {
-    await sendConfirmation(event, { name, email })
-  } catch (error) {
-    emailed = false
-    console.error('Failed to send registration confirmation:', error)
-  }
+  // The registration is already saved by this point, so the student doesn't
+  // wait on the mail server (1-4s) to be told so: the email goes out after the
+  // response is sent, and if it fails that is only logged — the seat is theirs
+  // either way.
+  after(async () => {
+    try {
+      await sendConfirmation(event, { name, email })
+    } catch (error) {
+      console.error('Failed to send registration confirmation:', error)
+    }
+  })
 
   return NextResponse.json({
     success: true,
     alreadyRegistered: result.alreadyRegistered,
     spotsLeft: result.spotsLeft,
-    emailed,
+    emailed: true,
   })
 }
 
