@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { motion, useTransform } from 'motion/react'
 import { useElementScrollProgress } from '@/hooks/use-scroll-progress'
@@ -15,10 +15,19 @@ export interface HorizontalScrollCard {
 
 // A tall (300vh) pinned-scroll section — scroll down through it and the
 // track slides horizontally instead of the page scrolling vertically past
-// it, same "tall wrapper + sticky stage + useScroll-driven transform"
+// it, same "tall wrapper + sticky stage + scroll-driven transform"
 // vocabulary as the iMac scroll windows (imac-scroll-windows.tsx), just
 // translating x instead of animating a shell. Entirely self-contained: it
 // doesn't touch that component or its scroll runway.
+//
+// The slide is tied to the stretch where the stage is actually pinned — from
+// the moment the section's top reaches the top of the screen until its bottom
+// reaches the bottom — not to the section's whole trip through the viewport.
+// Measured over the whole trip, roughly the first quarter of the slide
+// happened while the section was still scrolling up into view, so the first
+// photo had already gone by when it arrived. It also slides exactly as far as
+// the photos are wide, so the last one ends fully in view, and holds still for
+// a moment at each end.
 export function HorizontalScrollCarousel({
   cards,
   onSelect,
@@ -27,13 +36,31 @@ export function HorizontalScrollCarousel({
   onSelect?: (index: number) => void
 }) {
   const targetRef = useRef<HTMLDivElement>(null)
-  const scrollYProgress = useElementScrollProgress(targetRef)
-  const x = useTransform(scrollYProgress, [0, 1], ['1%', '-95%'])
+  const trackRef = useRef<HTMLDivElement>(null)
+  const scrollYProgress = useElementScrollProgress(targetRef, ['start start', 'end end'])
+
+  // How far the track has to travel for its far end to reach the right edge.
+  const [distance, setDistance] = useState(0)
+  useEffect(() => {
+    const track = trackRef.current
+    if (!track) return
+    const measure = () => setDistance(Math.max(0, track.scrollWidth - window.innerWidth))
+    measure()
+    window.addEventListener('resize', measure)
+    const observer = new ResizeObserver(measure)
+    observer.observe(track)
+    return () => {
+      window.removeEventListener('resize', measure)
+      observer.disconnect()
+    }
+  }, [cards.length])
+
+  const x = useTransform(scrollYProgress, [0.06, 0.94], [0, -distance])
 
   return (
     <section ref={targetRef} className="relative h-[300vh]">
       <div className="sticky top-0 flex h-screen items-center overflow-hidden">
-        <motion.div style={{ x }} className="flex gap-4 px-4 sm:px-8">
+        <motion.div ref={trackRef} style={{ x }} className="flex gap-4 px-4 sm:px-8">
           {cards.map((card, idx) => (
             <button
               key={card.id}
