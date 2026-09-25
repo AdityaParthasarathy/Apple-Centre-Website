@@ -1,5 +1,4 @@
 import type { Event } from '@/content/events'
-import { callAppsScript } from '@/lib/apps-script'
 
 export const REGISTRATION_YEARS = [
   '1st Year',
@@ -23,16 +22,4 @@ export function eventDay(event: Pick<Event, 'date'>): string {
 export function isRegistrationOpen(event: Pick<Event, 'date'>, now: Date = new Date()): boolean {
   const today = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
   return eventDay(event) >= today
-}
-
-/** How many people have registered for this event, or null if that couldn't
- *  be read — callers then show the event without a spots-left figure rather
- *  than claim a number they don't have. */
-export async function getRegisteredCount(eventId: string): Promise<number | null> {
-  try {
-    const result = await callAppsScript<{ items: { eventId: string; count: number }[] }>('listRegistrationCounts')
-    return result.items.find((item) => String(item.eventId) === eventId)?.count ?? 0
-  } catch {
-    return null
-  }
 }

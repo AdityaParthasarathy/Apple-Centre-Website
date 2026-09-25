@@ -8,25 +8,7 @@ import { getAllAchievements } from '@/lib/merge-achievements'
 import { callAppsScript } from '@/lib/apps-script'
 import type { SheetAnnouncement } from '@/lib/sheet-types'
 import type { Program } from '@/content/programs'
-
-export type SearchCategory =
-  | 'Program'
-  | 'Project'
-  | 'Event'
-  | 'Faculty'
-  | 'Facility'
-  | 'Gallery'
-  | 'Achievement'
-  | 'Announcement'
-
-export interface SearchItem {
-  id: string
-  title: string
-  description: string
-  category: SearchCategory
-  href: string
-  keywords: string[]
-}
+import type { SearchItem } from '@/lib/search'
 
 async function loadPublishedAnnouncements(): Promise<SheetAnnouncement[]> {
   try {
@@ -128,17 +110,4 @@ export async function buildSearchIndex(preloaded: { programs?: Program[] } = {})
       keywords: [],
     })),
   ]
-}
-
-export function searchItems(items: SearchItem[], query: string): SearchItem[] {
-  const q = query.trim().toLowerCase()
-  if (!q) return []
-  return items
-    .filter(
-      (item) =>
-        item.title.toLowerCase().includes(q) ||
-        item.description.toLowerCase().includes(q) ||
-        item.keywords.some((k) => k.toLowerCase().includes(q))
-    )
-    .slice(0, 8)
 }

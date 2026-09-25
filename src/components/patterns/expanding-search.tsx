@@ -6,7 +6,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { cn } from '@/lib/utils'
-import { searchItems, type SearchItem } from '@/lib/search-index'
+import { searchItems, type SearchItem } from '@/lib/search'
 
 interface ExpandingSearchProps {
   placeholder?: string

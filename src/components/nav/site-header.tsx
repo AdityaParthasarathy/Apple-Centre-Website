@@ -8,7 +8,7 @@ import { useScrollY } from '@/hooks/use-scroll-progress'
 import { Container } from '@/components/ui/container'
 import { ExpandingSearch } from '@/components/patterns/expanding-search'
 import { ApplyNowButton } from '@/components/nav/apply-now-button'
-import type { SearchItem } from '@/lib/search-index'
+import type { SearchItem } from '@/lib/search'
 
 // Primary navigation now lives in the floating dock (bottom of screen);
 // this header only carries brand identity and the search/apply actions.

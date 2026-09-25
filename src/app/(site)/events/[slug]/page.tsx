@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { EventRegistration } from '@/components/sections/event-registration'
 import { events } from '@/content/events'
 import { findEventBySlug } from '@/lib/merge-events'
-import { getRegisteredCount, isRegistrationOpen } from '@/lib/event-registration'
+import { isRegistrationOpen } from '@/lib/event-registration'
+import { getRegisteredCount } from '@/lib/registration-count'
 import { cn, isExternalImage } from '@/lib/utils'
 
 // Only the static seed events get a page built at deploy time — faculty-added
