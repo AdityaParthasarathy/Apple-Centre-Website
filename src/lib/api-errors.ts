@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { PHOTO_NOT_SAVED } from '@/lib/apps-script'
 
 /** The JSON body for a staff API route whose call to Google failed. Names the
  *  cause when it is one staff can act on, and never forwards Google's own
@@ -12,6 +13,9 @@ export function failureResponse(error: unknown, fallback: string) {
     // The Drive folder setting in Code.gs is missing or wrong (see uploadImageToDrive).
     message =
       'Photo storage is not set up: GALLERY_FOLDER_ID in the Apps Script must be your Drive folder ID. Ask whoever manages the script to fix it.'
+  } else if (text.startsWith(PHOTO_NOT_SAVED)) {
+    // The picture never reached Drive, so no row was made: safe to just retry.
+    message = "The photo didn't finish uploading to Google Drive, so nothing was saved. Please try again."
   } else if (/got no reply|reply was not JSON/i.test(text)) {
     // Google never answered in time, or answered with its own error page
     // instead of ours (see AppsScriptAmbiguousError in apps-script.ts). The

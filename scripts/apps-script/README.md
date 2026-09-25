@@ -100,3 +100,41 @@ to generate one: `node -e "console.log(require('crypto').randomBytes(32).toStrin
 through the portal (events, announcements, gallery photos) appears on the
 public site within about a minute (the relevant pages revalidate on a
 60-second interval).
+
+## Direct Sheets access (recommended: makes every save and load fast)
+
+The Apps Script web app is slow — 3 to 40 seconds a call, and it occasionally
+loses its reply. Reading and writing the sheet through Google's own Sheets API
+instead takes a fraction of a second and doesn't lose replies. Once the two
+settings below exist, the site does that automatically. **Photo uploads still go
+through the Apps Script** (a service account has no Drive storage of its own),
+so keep this script deployed exactly as before.
+
+If the settings are missing, or Google refuses the account, the site quietly
+falls back to the Apps Script, so this can't break anything.
+
+1. Open <https://console.cloud.google.com/>, create a project (any name).
+2. **APIs & Services → Library →** search **Google Sheets API → Enable**.
+3. **IAM & Admin → Service Accounts → Create service account** (any name, no
+   roles needed). Open it, **Keys → Add key → Create new key → JSON**. A `.json`
+   file downloads: that is the key. Keep it private.
+4. Open your Google Sheet → **Share** → paste the service account's email
+   (`…@….iam.gserviceaccount.com`, also inside the key file as `client_email`)
+   → set it to **Editor** → uncheck "Notify" → Share.
+5. Add two settings, to `.env.local` **and** to Vercel (Project → Settings →
+   Environment Variables), then redeploy:
+
+   ```
+   GOOGLE_SHEET_ID=<the long id in your sheet's address: docs.google.com/spreadsheets/d/THIS_PART/edit>
+   GOOGLE_SERVICE_ACCOUNT_JSON=<the whole contents of the key file>
+   ```
+
+   In Vercel paste the file's contents as they are. In `.env.local` it must be
+   one line inside **single** quotes: run
+   `node -e "console.log(JSON.stringify(require('./key.json')))"` and wrap the
+   output in `'…'`.
+6. Check it: `node scripts/check-google-sheets.mjs`. It signs in, checks every
+   tab and column, and proves write access using a scratch tab that it deletes
+   again.
+
+Saves also refresh the public pages straight away now, rather than within a minute.

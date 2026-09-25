@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto'
-import { unstable_cache } from 'next/cache'
+import { revalidateTag, unstable_cache } from 'next/cache'
+import { isDirectSheetsConfigured, SheetsAccessError } from '@/lib/google-auth'
+import { sheetsAction } from '@/lib/google-sheets'
 
 interface AppsScriptSuccess {
   success: true
@@ -25,6 +27,9 @@ class AppsScriptAmbiguousError extends Error {}
  *  single attempt (a second one can't fit in the function's 60s). */
 const PHOTO_ACTIONS = new Set(['uploadImage', 'addGalleryImage'])
 
+/** Marks a photo that never reached Drive, so nothing was saved (see failureResponse). */
+export const PHOTO_NOT_SAVED = 'The photo did not finish uploading to Drive'
+
 // Every write runs inside a 60s Vercel function, and Google's behaviour shapes
 // how that time is spent. Measured against this script: the request itself
 // runs in 2-4s every time, but the second step — collecting its answer from
@@ -36,6 +41,50 @@ const PHOTO_ACTIONS = new Set(['uploadImage', 'addGalleryImage'])
 const WRITE_BUDGET_MS = 58_000
 const ATTEMPT_MS = 14_000
 const PHOTO_ATTEMPT_MS = 40_000
+
+// Two ways to reach the spreadsheet, chosen by what is configured:
+//  - DIRECT (GOOGLE_SERVICE_ACCOUNT_JSON + GOOGLE_SHEET_ID set): Google's
+//    Sheets API, one request per action, well under a second, with no lost
+//    replies. Used for everything except photo uploads.
+//  - APPS SCRIPT (the original): a web app inside the sheet. Slow (3-40s) and
+//    it loses about one reply in five, which is what all the retry and
+//    read-back machinery below exists to absorb. Still used for photo uploads
+//    (a service account has no Drive storage of its own, so only the script
+//    can save files into the Centre's Drive) and as the automatic fallback if
+//    Google refuses the service account.
+
+// Every cached read carries this tag; a write expires it (see callAppsScript)
+// so the next read, and the public pages built from it, show the change.
+const SHEET_TAG = 'sheet-data'
+const MUTATION = /^(add|update|delete|register|logApplication)/
+
+/**
+ * Runs an action through the Sheets API. Null means "not available, use
+ * Apps Script": the direct route isn't set up, or Google turned the service
+ * account away (a wrong key, or a sheet that was never shared with it) before
+ * anything was changed.
+ */
+async function callDirect(action: string, payload: Record<string, unknown>): Promise<Record<string, unknown> | null> {
+  if (!isDirectSheetsConfigured()) return null
+  try {
+    const reply = await sheetsAction(action, payload)
+    if (reply.success !== true) {
+      throw new Error(`Apps Script action "${action}" failed: ${(reply as { error?: string }).error ?? 'unknown error'}`)
+    }
+    return reply
+  } catch (err) {
+    if (err instanceof SheetsAccessError) {
+      console.error(`Direct Sheets access failed for "${action}"; using Apps Script instead:`, err.message)
+      return null
+    }
+    throw err
+  }
+}
+
+/** One uncached read: direct if possible, otherwise through the script. */
+async function readOnce<T extends Record<string, unknown>>(action: string, payload: Record<string, unknown>): Promise<T> {
+  return ((await callDirect(action, payload)) as T | null) ?? callAppsScriptOnce<T>(action, payload)
+}
 
 /**
  * Calls the Google Apps Script Web App that backs every piece of
@@ -124,7 +173,7 @@ async function callAppsScriptOnce<T extends Record<string, unknown>>(
 // `export const revalidate = 60`). Only `list*` (read-only) actions are
 // cached — a write's result being action-specific and often one-shot isn't
 // something a shared cache should paper over.
-const callAppsScriptOnceCached = unstable_cache(callAppsScriptOnce, ['apps-script-list'], { revalidate: 60 })
+const callAppsScriptOnceCached = unstable_cache(readOnce, ['apps-script-list'], { revalidate: 60, tags: [SHEET_TAG] })
 
 // Google's Apps Script Web Apps have wildly uneven latency — sequential
 // calls to this same endpoint have been measured anywhere from 2s to 45s,
@@ -178,6 +227,16 @@ async function callWrite<T extends Record<string, unknown>>(
   const add = ADD_ACTIONS[action]
   const body = add && !payload.id ? { ...payload, id: contentId(action, payload) } : payload
 
+  if (isDirectSheetsConfigured()) {
+    if (action === 'addGalleryImage') {
+      const row = await addGalleryImageDirect(body)
+      if (row) return row as unknown as T
+    } else if (!PHOTO_ACTIONS.has(action)) {
+      const reply = await callDirect(action, body)
+      if (reply) return reply as unknown as T
+    }
+  }
+
   // `registerForEvent` is safe to repeat: the script answers a second attempt
   // for the same email + event with the existing registration, not a new one.
   if (!add && !/^(update|delete|register)/.test(action)) return callAppsScriptOnce<T>(action, body)
@@ -221,11 +280,41 @@ async function callWrite<T extends Record<string, unknown>>(
   throw lastError
 }
 
+/**
+ * A gallery photo, direct route: the picture goes to Drive through the script
+ * (the only thing that can store files there), then the row is written straight
+ * to the sheet. Splitting them means a lost reply from the upload leaves no
+ * half-made row behind — nothing is in the sheet until the photo is safely in
+ * Drive. Null means the sheet refused the service account: use the script for
+ * the whole thing, as before.
+ */
+async function addGalleryImageDirect(body: Record<string, unknown>): Promise<Record<string, unknown> | null> {
+  let uploaded: { url: string }
+  try {
+    uploaded = await callAppsScriptOnce<{ url: string }>('uploadImage', {
+      base64: body.base64,
+      mimeType: body.mimeType,
+      filename: body.filename,
+    })
+  } catch (err) {
+    if (err instanceof AppsScriptAmbiguousError) {
+      throw new Error(`${PHOTO_NOT_SAVED}: ${err.message}`, { cause: err })
+    }
+    throw err
+  }
+  // The sheet row stores the picture's address, not the picture.
+  const row: Record<string, unknown> = { ...body, image: uploaded.url }
+  delete row.base64
+  delete row.mimeType
+  delete row.filename
+  return callDirect('addGalleryImage', row)
+}
+
 /** A stable id for an add, derived from what is being added: sending the same
  *  form twice — a retry here, or someone pressing the button again after a
  *  "couldn't confirm" — is the same row, not a second one. */
 function contentId(action: string, payload: Record<string, unknown>) {
-  return createHash('sha256').update(action).update(' ').update(JSON.stringify(payload)).digest('hex').slice(0, 32)
+  return createHash('sha256').update(action).update('|').update(JSON.stringify(payload)).digest('hex').slice(0, 32)
 }
 
 export async function callAppsScript<T extends Record<string, unknown> = Record<string, unknown>>(
@@ -238,10 +327,17 @@ export async function callAppsScript<T extends Record<string, unknown> = Record<
 ): Promise<T> {
   // Only read-only `list*` actions are cached/shared. Writes are never
   // served from a cache; they get their own careful retry in callWrite.
-  if (!action.startsWith('list')) return callWrite<T>(action, payload)
+  if (!action.startsWith('list')) {
+    const result = await callWrite<T>(action, payload)
+    // A change is only worth having if it shows: expire every cached read (the
+    // pages built from them included) rather than let them age out over the
+    // next minute.
+    if (MUTATION.test(action)) revalidateTag(SHEET_TAG, { expire: 0 })
+    return result
+  }
 
   const key = `${action}:${JSON.stringify(payload)}`
-  const read = fresh ? callAppsScriptOnce : callAppsScriptOnceCached
+  const read = fresh ? readOnce : callAppsScriptOnceCached
   const inFlightKey = fresh ? `fresh:${key}` : key
   const pending = inFlight.get(inFlightKey)
   if (pending) return pending as Promise<T>
