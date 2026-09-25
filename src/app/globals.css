@@ -9,6 +9,8 @@
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -39,6 +41,10 @@
   --foreground: #0b0b0f;
   --card: #ffffff;
   --card-foreground: #0b0b0f;
+  /* Floating labels and dropdowns: solid, so they read over any background,
+     including the dark sections the dock passes in front of. */
+  --popover: #ffffff;
+  --popover-foreground: #0b0b0f;
   --primary: #0b0b0f;
   --primary-foreground: #fafafa;
   --secondary: #e8e8ec;
