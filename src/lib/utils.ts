@@ -25,11 +25,6 @@ export function isExternalImage(src: string) {
 export function cardImage(src: string, width = 640) {
   // A record with no image at all must not take the whole page down with it.
   if (!src) return src
-  // Photos kept in Vercel Blob come with a 640px copy beside the full picture
-  // (see lib/photo-storage.ts); a card asks for that one.
-  if (width <= 640 && /^https:\/\/[^/]+\.blob\.vercel-storage\.com\/photos\/[^/]+\.jpg$/.test(src) && !src.endsWith("-640.jpg")) {
-    return src.replace(/\.jpg$/, "-640.jpg")
-  }
   if (!src.startsWith("https://lh3.googleusercontent.com/")) return src
   return src.replace(/=w\d+[^/]*$/, `=w${width}`)
 }

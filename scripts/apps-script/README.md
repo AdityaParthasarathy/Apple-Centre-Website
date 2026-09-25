@@ -154,6 +154,3 @@ and if it is ever unavailable the site quietly uses Drive as before.
    older ones). **Redeploy** so the site picks them up.
 3. Done: new photos are saved there. Photos already in Drive keep working
    exactly as they are — nothing is moved or changed.
-
-Each photo is saved twice, the picture and a 640px copy beside it, so pages
-full of photos load quickly.

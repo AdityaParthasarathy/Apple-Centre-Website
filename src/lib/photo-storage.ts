@@ -1,6 +1,5 @@
 import { randomUUID } from 'node:crypto'
 import { put } from '@vercel/blob'
-import sharp from 'sharp'
 
 // Where new photos are kept.
 //
@@ -13,13 +12,9 @@ import sharp from 'sharp'
 // ever fails, the photo goes to Drive through the script as it always has, so
 // turning this on cannot make anything worse.
 //
-// Each photo is stored twice, the picture as sent (already scaled to 1280px in
-// the browser) and a 640px copy next to it — same address with "-640" before
-// the extension — which cards use so a page full of photos doesn't download a
-// page full of large pictures (see cardImage in lib/utils.ts).
-
-export const BLOB_HOST_SUFFIX = '.blob.vercel-storage.com'
-export const THUMB_WIDTH = 640
+// Only JPEGs (what the staff portal always sends: pictures are scaled and
+// converted in the browser first) are taken; no image processing happens here,
+// so nothing native has to load on the server.
 
 // Blob's own client retries a failing request for minutes, which would leave
 // the photo hanging until the function is cut off. A save that normally takes
@@ -30,32 +25,22 @@ export function isPhotoStorageConfigured() {
   return !!process.env.BLOB_READ_WRITE_TOKEN || !!process.env.BLOB_STORE_ID
 }
 
-/** Saves a picture; null means "not available, use Drive". Only pictures: a
- *  résumé or any other document is left to Drive. */
+/** Saves a picture; null means "not available, use Drive". A résumé, or any
+ *  other document or picture type, is left to Drive. */
 export async function storePhoto(input: { base64?: unknown; mimeType?: unknown }): Promise<{ url: string } | null> {
   if (!isPhotoStorageConfigured()) return null
-  if (typeof input.base64 !== 'string' || typeof input.mimeType !== 'string' || !input.mimeType.startsWith('image/')) return null
+  if (typeof input.base64 !== 'string' || input.mimeType !== 'image/jpeg') return null
 
   try {
-    const original = Buffer.from(input.base64, 'base64')
-    // Only JPEGs are stored as sent; anything else (a PNG screenshot) is
-    // converted so both copies share one extension and address pattern.
-    const [full, thumb] = await Promise.all([
-      input.mimeType === 'image/jpeg' ? original : sharp(original).rotate().jpeg({ quality: 85 }).toBuffer(),
-      sharp(original).rotate().resize({ width: THUMB_WIDTH, withoutEnlargement: true }).jpeg({ quality: 78 }).toBuffer(),
-    ])
-
-    const id = randomUUID()
+    const bytes = Buffer.from(input.base64, 'base64')
     const controller = new AbortController()
-    const options = {
-      access: 'public' as const,
+    const saving = put(`photos/${randomUUID()}.jpg`, bytes, {
+      access: 'public',
       contentType: 'image/jpeg',
       addRandomSuffix: false,
       cacheControlMaxAge: 60 * 60 * 24 * 365,
       abortSignal: controller.signal,
-    }
-    // Both must be saved: a card asks for the small copy by name.
-    const saving = Promise.all([put(`photos/${id}.jpg`, full, options), put(`photos/${id}-${THUMB_WIDTH}.jpg`, thumb, options)])
+    })
     let timer: ReturnType<typeof setTimeout> | undefined
     const deadline = new Promise<never>((_, reject) => {
       timer = setTimeout(() => {
@@ -64,8 +49,8 @@ export async function storePhoto(input: { base64?: unknown; mimeType?: unknown }
       }, BLOB_DEADLINE_MS)
     })
     try {
-      const [main] = await Promise.race([saving, deadline])
-      return { url: main.url }
+      const stored = await Promise.race([saving, deadline])
+      return { url: stored.url }
     } finally {
       clearTimeout(timer)
       // The abandoned attempt must not surface later as an unhandled rejection.
