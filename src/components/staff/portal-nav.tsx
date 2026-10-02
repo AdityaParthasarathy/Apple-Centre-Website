@@ -1,90 +1,66 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import {
+  Building2,
+  CalendarDays,
+  ClipboardList,
+  GraduationCap,
+  FolderKanban,
+  Images,
+  Inbox,
+  LayoutDashboard,
+  Megaphone,
+  Trophy,
+  Users,
+  type LucideIcon,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-const NAV_ITEMS = [
-  { href: '/staff', label: 'Dashboard' },
-  { href: '/staff/events', label: 'Events' },
-  { href: '/staff/registrations', label: 'Registrations' },
-  { href: '/staff/announcements', label: 'Announcements' },
-  { href: '/staff/gallery', label: 'Gallery' },
-  { href: '/staff/applications', label: 'Applications' },
-  { href: '/staff/projects', label: 'Projects' },
-  { href: '/staff/achievements', label: 'Achievements' },
-  { href: '/staff/team', label: 'Team' },
-  { href: '/staff/programs', label: 'Programs' },
-  { href: '/staff/facilities', label: 'Facilities' },
+const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: '/staff', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/staff/events', label: 'Events', icon: CalendarDays },
+  { href: '/staff/registrations', label: 'Registrations', icon: ClipboardList },
+  { href: '/staff/announcements', label: 'Announcements', icon: Megaphone },
+  { href: '/staff/gallery', label: 'Gallery', icon: Images },
+  { href: '/staff/applications', label: 'Applications', icon: Inbox },
+  { href: '/staff/projects', label: 'Projects', icon: FolderKanban },
+  { href: '/staff/achievements', label: 'Achievements', icon: Trophy },
+  { href: '/staff/team', label: 'Team', icon: Users },
+  { href: '/staff/programs', label: 'Programs', icon: GraduationCap },
+  { href: '/staff/facilities', label: 'Facilities', icon: Building2 },
 ]
 
-export function PortalNav() {
+/** The portal's vertical navigation, shown in the side panel on wide screens
+ *  and inside the slide-in drawer on small ones. `onNavigate` lets the drawer
+ *  close itself the moment a link is chosen. */
+export function PortalNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname()
-  const scrollRef = useRef<HTMLElement>(null)
-  const [canScrollLeft, setCanScrollLeft] = useState(false)
-  const [canScrollRight, setCanScrollRight] = useState(false)
-
-  useEffect(() => {
-    const el = scrollRef.current
-    if (!el) return
-
-    // With 11 tabs this strip overflows on narrower screens with no visual
-    // hint that it scrolls — these edge fades only show up when there's
-    // actually more to scroll in that direction, so they disappear once
-    // the strip fits or you've scrolled all the way to an edge.
-    const updateFades = () => {
-      setCanScrollLeft(el.scrollLeft > 1)
-      setCanScrollRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1)
-    }
-
-    updateFades()
-    el.addEventListener('scroll', updateFades, { passive: true })
-    const resizeObserver = new ResizeObserver(updateFades)
-    resizeObserver.observe(el)
-
-    return () => {
-      el.removeEventListener('scroll', updateFades)
-      resizeObserver.disconnect()
-    }
-  }, [])
 
   return (
-    <div className="relative mt-4">
-      <nav ref={scrollRef} className="-mb-px flex items-center gap-1 overflow-x-auto border-b border-border">
-        {NAV_ITEMS.map((item) => {
-          const isActive = item.href === '/staff' ? pathname === '/staff' : pathname.startsWith(item.href)
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              aria-current={isActive ? 'page' : undefined}
-              className={cn(
-                'shrink-0 border-b-2 px-3 pb-2.5 text-sm font-medium transition-colors',
-                isActive
-                  ? 'border-accent text-accent'
-                  : 'border-transparent text-muted-foreground hover:border-border hover:text-foreground'
-              )}
-            >
-              {item.label}
-            </Link>
-          )
-        })}
-      </nav>
-      <div
-        aria-hidden="true"
-        className={cn(
-          'pointer-events-none absolute inset-y-0 -bottom-px left-0 w-8 bg-gradient-to-r from-background to-transparent transition-opacity duration-200',
-          canScrollLeft ? 'opacity-100' : 'opacity-0'
-        )}
-      />
-      <div
-        aria-hidden="true"
-        className={cn(
-          'pointer-events-none absolute inset-y-0 -bottom-px right-0 w-8 bg-gradient-to-l from-background to-transparent transition-opacity duration-200',
-          canScrollRight ? 'opacity-100' : 'opacity-0'
-        )}
-      />
-    </div>
+    <nav aria-label="Faculty portal" className="flex flex-col gap-1">
+      {NAV_ITEMS.map((item) => {
+        const isActive = item.href === '/staff' ? pathname === '/staff' : pathname.startsWith(item.href)
+        const Icon = item.icon
+        return (
+          <Link
+            key={item.href}
+            href={item.href}
+            onClick={onNavigate}
+            aria-current={isActive ? 'page' : undefined}
+            className={cn(
+              'flex min-h-11 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors',
+              isActive
+                ? 'bg-accent/10 text-accent'
+                : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+            )}
+          >
+            <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+            {item.label}
+          </Link>
+        )
+      })}
+    </nav>
   )
 }
