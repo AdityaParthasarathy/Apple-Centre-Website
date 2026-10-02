@@ -35,7 +35,9 @@ export async function POST(request: Request) {
     )
   }
 
-  const isValid = await compare(password, faculty?.passwordHash ?? DUMMY_HASH)
+  // `||`, not `??`: a Google-only staff member has a blank password_hash in the
+  // sheet, and a blank hash must be treated like "no such password", never compared.
+  const isValid = await compare(password, faculty?.passwordHash || DUMMY_HASH)
   if (!faculty || !isValid) {
     return NextResponse.json({ error: 'Invalid email or password.' }, { status: 401 })
   }

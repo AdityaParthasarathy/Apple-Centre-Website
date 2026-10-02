@@ -47,18 +47,28 @@ export async function getFacultySession(): Promise<FacultySession | null> {
   return verifySessionToken(token)
 }
 
+function sessionCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax' as const,
+    path: '/',
+    maxAge: SESSION_DURATION_SECONDS,
+  }
+}
+
+/** The session cookie as name/value/options, for a handler that builds its own
+ *  response (the Google sign-in redirect sets it straight on that response). */
+export async function buildSessionCookie(session: FacultySession) {
+  return { name: SESSION_COOKIE_NAME, value: await signSessionToken(session), options: sessionCookieOptions() }
+}
+
 /** Route Handlers only — sets the signed session cookie after a successful login. */
 export async function setSessionCookie(session: FacultySession) {
   const { cookies } = await import('next/headers')
   const token = await signSessionToken(session)
   const store = await cookies()
-  store.set(SESSION_COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
-    path: '/',
-    maxAge: SESSION_DURATION_SECONDS,
-  })
+  store.set(SESSION_COOKIE_NAME, token, sessionCookieOptions())
 }
 
 export async function clearSessionCookie() {
