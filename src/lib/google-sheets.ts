@@ -598,12 +598,21 @@ function updatesFrom(body: Obj): Obj {
 // Applications, faculty logins, event registrations
 // ---------------------------------------------------------------------------
 
+// techComfort and resumeUrl came later than the rest (the Apply form's comfort
+// question and résumé upload). They were missing here, so an application saved
+// without them: the Applications page in the portal never showed the résumé
+// or the comfort answer, though the notification email had both. Like the
+// Gallery's `album`, they are added to the sheet's header row on first use.
+const APPLICATION_EXTRA_COLUMNS = ['techComfort', 'resumeUrl']
+
 const APPLICATION_FIELDS = [
   'name',
   'email',
   'phone',
   'year',
   'skills',
+  'techComfort',
+  'resumeUrl',
   'project1Description',
   'project1SourceLink',
   'project1LiveLink',
@@ -787,7 +796,7 @@ async function dispatch(action: string, body: Obj): Promise<Obj> {
       for (const field of APPLICATION_FIELDS) row[field] = body[field] ?? ''
       row.status = 'Pending'
       row.submittedAt = now()
-      await appendRow('Applications', row)
+      await appendRow('Applications', row, APPLICATION_EXTRA_COLUMNS)
       return ok({ id })
     }
     case 'listApplications': {

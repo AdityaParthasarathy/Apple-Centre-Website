@@ -73,6 +73,16 @@ function parseProjects(formData: FormData): ProjectInput[] {
   return projects
 }
 
+/** Drive hands every upload back as a picture-style address
+ *  (lh3.googleusercontent.com/d/<id>=w1600). That is right for a photo, but
+ *  for a PDF it serves one page rendered as an image — staff need the real
+ *  document, so a résumé is kept as its Drive viewer link instead (the file
+ *  is already shared "anyone with the link can view"). */
+function driveViewLink(url: string): string {
+  const id = url.match(/\/d\/([^/=?]+)/)?.[1]
+  return id ? `https://drive.google.com/file/d/${id}/view` : url
+}
+
 /** Resume is optional — parsed the same base64-in-a-hidden-field way the
  *  project screenshots already are (see ScreenshotState in apply-form.tsx),
  *  uploaded through the same Apps Script action. */
@@ -86,7 +96,7 @@ async function uploadResume(formData: FormData): Promise<string> {
       mimeType,
       filename: 'application-resume.pdf',
     })
-    return result.url
+    return driveViewLink(result.url)
   } catch (error) {
     console.error('Failed to upload resume:', error)
     return ''
