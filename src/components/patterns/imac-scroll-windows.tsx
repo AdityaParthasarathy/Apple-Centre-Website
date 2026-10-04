@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState, type CSSProperties } from 'react'
-import { motion, useTransform, useMotionValueEvent } from 'motion/react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { motion, useMotionValue, useTransform, useMotionValueEvent } from 'motion/react'
 import { useElementScrollProgress } from '@/hooks/use-scroll-progress'
 import { useLenis } from 'lenis/react'
 import { IMacMarqueeField } from '@/components/patterns/imac-marquee-field'
@@ -25,6 +25,44 @@ const WINDOWS = [
   { id: 'projects', label: 'Student Projects', color: 'oklch(78% 0.09 300)' },
 ] as const
 
+// Phones and other touch screens. There the embedded page can't be scrolled
+// from inside its own little iframe the way it is with a mouse wheel: iOS
+// Safari sizes `100vh` to the tallest the viewport ever gets (so the bottom of
+// the frame sits under the toolbar), and a finger swipe that starts inside an
+// iframe bounces between scrolling the frame and scrolling this page — so the
+// window shrank away after about one screenful. On these screens the iframe is
+// instead made as tall as its whole page, and the page's own (native) scroll
+// slides it up through the screen during an extra "hold" stretch of the
+// runway. Nothing scrolls inside the frame at all.
+const viewportHeight = () => (typeof window === 'undefined' ? 800 : window.innerHeight)
+
+const DRIVEN_QUERY = '(pointer: coarse), (max-width: 767px)'
+
+function useDrivenLayout() {
+  const [driven, setDriven] = useState(false)
+  useEffect(() => {
+    const query = window.matchMedia(DRIVEN_QUERY)
+    // With reduced motion the window is a plain scrollable frame (see the
+    // prefers-reduced-motion block in globals.css), which needs no help.
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const update = () => setDriven(query.matches && !reduced.matches)
+    update()
+    query.addEventListener('change', update)
+    reduced.addEventListener('change', update)
+    return () => {
+      query.removeEventListener('change', update)
+      reduced.removeEventListener('change', update)
+    }
+  }, [])
+  return driven
+}
+
+// The browser-chrome strip above the page inside a full-screen window.
+const CHROME_PX = 40
+// Where the "closed → open" part of the runway ends: the content is fully
+// faded in at this fraction (see contentOpacity below).
+const HOLD_START = 0.32
+
 function IMacScrollWindow({
   id,
   label,
@@ -36,8 +74,61 @@ function IMacScrollWindow({
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const scrollYProgress = useElementScrollProgress(wrapperRef, ['start start', 'end end'])
+  const rawProgress = useElementScrollProgress(wrapperRef, ['start start', 'end end'])
   const lenis = useLenis()
+  const driven = useDrivenLayout()
+
+  // Touch screens only (see DRIVEN_QUERY): how tall the embedded page is, and
+  // so how much extra runway the window needs to scroll all of it through.
+  const [contentHeight, setContentHeight] = useState(0)
+  const extra = driven && contentHeight > 0 ? Math.max(0, Math.round(contentHeight - (viewportHeight() - CHROME_PX) + 24)) : 0
+
+  // `scrollYProgress` drives every animation below exactly as before. On a
+  // desktop it IS the raw runway progress. On touch screens the runway is
+  // `extra` pixels longer, and that stretch is spent holding the window open
+  // while the page inside slides up (`pageShift`); the progress the
+  // animations see stands still through it and resumes afterwards.
+  const scrollYProgress = useMotionValue(0)
+  const pageShift = useMotionValue(0)
+  const travel = useRef(1)
+  const recompute = useCallback(() => {
+    const p = rawProgress.get()
+    if (extra <= 0) {
+      scrollYProgress.set(p)
+      pageShift.set(0)
+      return
+    }
+    const base = Math.max(1, travel.current - extra)
+    const px = p * travel.current
+    const holdStart = HOLD_START * base
+    if (px <= holdStart) {
+      scrollYProgress.set(px / base)
+      pageShift.set(0)
+    } else if (px <= holdStart + extra) {
+      scrollYProgress.set(HOLD_START)
+      pageShift.set(-(px - holdStart))
+    } else {
+      scrollYProgress.set((px - extra) / base)
+      pageShift.set(-extra)
+    }
+  }, [rawProgress, scrollYProgress, pageShift, extra])
+  useMotionValueEvent(rawProgress, 'change', recompute)
+  useEffect(() => {
+    const wrapper = wrapperRef.current
+    if (!wrapper) return
+    const measure = () => {
+      travel.current = Math.max(1, wrapper.offsetHeight - window.innerHeight)
+      recompute()
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    const observer = new ResizeObserver(measure)
+    observer.observe(wrapper)
+    return () => {
+      window.removeEventListener('resize', measure)
+      observer.disconnect()
+    }
+  }, [recompute])
 
   // The iframe used to only mount once the shell was already fully grown,
   // because resizing it while mounted forced its embedded document to
@@ -74,9 +165,33 @@ function IMacScrollWindow({
   // the officially-supported `lenis.scrollTo` API was sitting right there.)
   useEffect(() => {
     const iframe = iframeRef.current
-    if (!iframe || !lenis) return
+    if (!iframe) return
 
     let detach: (() => void) | undefined
+
+    // Touch screens: track the embedded page's full height so the runway and
+    // the iframe can be made exactly that long. No scroll hand-off is needed
+    // there — the frame is as tall as its page, so it never scrolls itself.
+    if (driven) {
+      const track = () => {
+        const doc = iframe.contentDocument
+        if (!doc) return
+        const measure = () => setContentHeight(Math.ceil(doc.body.offsetHeight))
+        measure()
+        const observer = new ResizeObserver(measure)
+        observer.observe(doc.body)
+        detach?.()
+        detach = () => observer.disconnect()
+      }
+      iframe.addEventListener('load', track)
+      if (iframe.contentDocument?.readyState === 'complete') track()
+      return () => {
+        iframe.removeEventListener('load', track)
+        detach?.()
+      }
+    }
+
+    if (!lenis) return
 
     const attach = () => {
       const win = iframe.contentWindow
@@ -145,7 +260,7 @@ function IMacScrollWindow({
       iframe.removeEventListener('load', attach)
       detach?.()
     }
-  }, [lenis, iframeActive])
+  }, [lenis, iframeActive, driven])
 
   // Symmetric: grow 0 → 0.22, hold full-screen through 0.68, shrink back by
   // 0.9 — a mirror of the same keyframes on the way in and out, so opening
@@ -168,7 +283,7 @@ function IMacScrollWindow({
   const shellHeight = useTransform(
     scrollYProgress,
     [0, 0.22, 0.68, 0.9],
-    ['min(34vh, 24.29vw)', 'min(100vh, 500vw)', 'min(100vh, 500vw)', 'min(34vh, 24.29vw)']
+    ['min(34dvh, 24.29vw)', 'min(100dvh, 500vw)', 'min(100dvh, 500vw)', 'min(34dvh, 24.29vw)']
   )
   const shellRadius = useTransform(scrollYProgress, [0, 0.22, 0.68, 0.9], [18, 0, 0, 18])
   const bezelPad = useTransform(scrollYProgress, [0, 0.22, 0.68, 0.9], ['6px', '0px', '0px', '6px'])
@@ -193,10 +308,10 @@ function IMacScrollWindow({
     scrollYProgress,
     [0, 0.22, 0.68, 0.9],
     [
-      'calc(50% + min(17vh, 12.145vw))',
-      'calc(50% + min(50vh, 250vw))',
-      'calc(50% + min(50vh, 250vw))',
-      'calc(50% + min(17vh, 12.145vw))',
+      'calc(50% + min(17dvh, 12.145vw))',
+      'calc(50% + min(50dvh, 250vw))',
+      'calc(50% + min(50dvh, 250vw))',
+      'calc(50% + min(17dvh, 12.145vw))',
     ]
   )
   const contentOpacity = useTransform(scrollYProgress, [0.24, 0.32, 0.6, 0.68], [0, 1, 1, 0])
@@ -207,7 +322,17 @@ function IMacScrollWindow({
   const iframePointerEvents = useTransform(contentOpacity, (v) => (v > 0.5 ? 'auto' : 'none'))
 
   return (
-    <div ref={wrapperRef} className="imac-reveal" id={id} style={{ '--imac-color': color } as CSSProperties}>
+    <div
+      ref={wrapperRef}
+      className="imac-reveal"
+      id={id}
+      style={
+        {
+          '--imac-color': color,
+          ...(extra > 0 && { height: `calc(260vh + ${extra}px)`, containIntrinsicSize: `auto calc(260vh + ${extra}px)` }),
+        } as CSSProperties
+      }
+    >
       {iframeActive && <div className="imac-window-active" hidden />}
       <div className="imac-reveal-sticky">
         <motion.div className="imac-stand" style={{ opacity: standOpacity, top: standTop }}>
@@ -240,7 +365,10 @@ function IMacScrollWindow({
                     src={`/embed/${id}`}
                     title={`Apple Centre — ${label}`}
                     className="imac-reveal-iframe"
-                    style={{ pointerEvents: iframePointerEvents }}
+                    style={{
+                      pointerEvents: iframePointerEvents,
+                      ...(driven && { height: contentHeight || undefined, y: pageShift }),
+                    }}
                   />
                 )}
               </div>

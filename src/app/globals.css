@@ -469,6 +469,10 @@ body:has(.imac-window-active) nav {
   position: sticky;
   top: 0;
   height: 100vh;
+  /* Phones: 100vh is the tallest the viewport gets (toolbars hidden), which
+     leaves the bottom of the screen under the browser's own toolbar. dvh
+     follows what is actually visible; browsers without it keep 100vh. */
+  height: 100dvh;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -668,7 +672,7 @@ body:has(.imac-window-active) nav {
 
 @media (prefers-reduced-motion: reduce) {
   .imac-reveal {
-    height: auto;
+    height: auto !important;
   }
   .imac-reveal-sticky {
     position: relative;
