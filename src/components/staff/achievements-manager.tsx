@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { MotionButton } from '@/components/patterns/motion-link'
 import { ImageUploadField } from '@/components/staff/image-upload-field'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
+import { usePersistentState } from '@/hooks/use-persistent-state'
 import { tempId, useLatest, useOptimisticList } from '@/hooks/use-optimistic-list'
 import { inputClass, isExternalImage, cardImage } from '@/lib/utils'
 import type { SheetAchievement } from '@/lib/sheet-types'
@@ -33,8 +34,8 @@ export function AchievementsManager({ initialAchievements }: { initialAchievemen
     noun: 'achievement',
   })
   const achievements = list.items
-  const [form, setForm] = useState<FormState>(EMPTY_FORM)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = usePersistentState<FormState>('staff-draft:achievements', EMPTY_FORM)
+  const [editingId, setEditingId] = usePersistentState<string | null>('staff-draft:achievements:editing', null)
   const [error, setError] = useState<string | null>(null)
   const formRef = useLatest(form)
 

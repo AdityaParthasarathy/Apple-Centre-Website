@@ -23,3 +23,19 @@ export function isRegistrationOpen(event: Pick<Event, 'date'>, now: Date = new D
   const today = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' })
   return eventDay(event) >= today
 }
+
+/** Programs share the registrations sheet with events; a program's signups are
+ *  filed under this prefix + its id, which can't clash with an event's id. */
+export const PROGRAM_ID_PREFIX = 'program:'
+export const programRegistrationId = (programId: string) => `${PROGRAM_ID_PREFIX}${programId}`
+export const isProgramRegistration = (registrationId: string) => registrationId.startsWith(PROGRAM_ID_PREFIX)
+
+/** A phone number somebody could actually ring: 7-15 digits, however it is
+ *  punctuated ("+91 81229 07520", "(044) 2345-6789"). */
+export function isValidPhone(phone: string): boolean {
+  const digits = phone.replace(/\D/g, '').length
+  return digits >= 7 && digits <= 15
+}
+
+export const MISSING_DETAILS_MESSAGE =
+  'Please fill in your name, email, phone number, college / department and year.'

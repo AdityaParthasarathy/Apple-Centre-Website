@@ -27,10 +27,10 @@ export default async function StaffRegistrationsPage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight text-foreground">Event registrations</h1>
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">Registrations</h1>
       <p className="mt-1 text-muted-foreground">
-        Students who signed up for an event from its page. Download a list per event for the door, or remove someone
-        who can&apos;t make it to free up their seat.
+        Students who signed up for an event or a program from its page. Download a list per event or program, or remove
+        someone who can&apos;t make it to free up their seat.
       </p>
       {error && (
         <p className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">

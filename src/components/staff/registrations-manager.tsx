@@ -8,6 +8,7 @@ import { MotionButton } from '@/components/patterns/motion-link'
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/components/ui/select'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
 import { useOptimisticList } from '@/hooks/use-optimistic-list'
+import { isProgramRegistration } from '@/lib/event-registration'
 import type { SheetRegistration } from '@/lib/sheet-types'
 
 const ALL = 'all'
@@ -21,7 +22,7 @@ function csvCell(value: string) {
 }
 
 function toCsv(rows: SheetRegistration[]) {
-  const header = ['Event', 'Event date', 'Name', 'Email', 'Phone', 'College', 'Year', 'Registered at']
+  const header = ['Event / program', 'Event date', 'Name', 'Email', 'Phone', 'College', 'Year', 'Registered at']
   const lines = rows.map((r) =>
     [r.eventTitle, r.eventDate, r.name, r.email, r.phone, r.college, r.year, r.registeredAt].map(csvCell).join(',')
   )
@@ -69,11 +70,14 @@ export function RegistrationsManager({ initialRegistrations }: { initialRegistra
   const visible = registrations.filter((r) => activeFilter === ALL || r.eventId === activeFilter)
   const groups = events.filter((e) => activeFilter === ALL || e.id === activeFilter)
 
+  // Programs are signed up for from their own card and have no date.
+  const nameOf = (entry: { id: string; title: string }) => (isProgramRegistration(entry.id) ? `Program: ${entry.title}` : entry.title)
+
   // The trigger would otherwise show the raw value ("all" or an event id).
   const filterLabel = (value: string) => {
-    if (value === ALL) return `All events (${registrations.length})`
+    if (value === ALL) return `Everything (${registrations.length})`
     const event = events.find((e) => e.id === value)
-    return event ? `${event.title} (${event.count})` : value
+    return event ? `${nameOf(event)} (${event.count})` : value
   }
 
   // Signups come in continuously, so the list is never trusted to be current.
@@ -113,7 +117,7 @@ export function RegistrationsManager({ initialRegistrations }: { initialRegistra
   const exportCsv = () => {
     if (visible.length === 0) return
     const active = events.find((e) => e.id === activeFilter)
-    const slug = active ? active.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : 'all-events'
+    const slug = active ? nameOf(active).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') : 'all-events'
     download(`registrations-${slug || 'event'}.csv`, toCsv(visible))
   }
 
@@ -133,17 +137,17 @@ export function RegistrationsManager({ initialRegistrations }: { initialRegistra
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="w-full sm:w-72">
           <label htmlFor="registrationEvent" className="mb-1.5 block text-sm font-medium text-foreground">
-            Event
+            Event or program
           </label>
           <Select value={activeFilter} onValueChange={(value) => setEventFilter(value as string)}>
             <SelectTrigger id="registrationEvent">
               <SelectValue>{(value: string) => filterLabel(value)}</SelectValue>
             </SelectTrigger>
             <SelectPopup>
-              <SelectItem value={ALL}>All events ({registrations.length})</SelectItem>
+              <SelectItem value={ALL}>Everything ({registrations.length})</SelectItem>
               {events.map((e) => (
                 <SelectItem key={e.id} value={e.id}>
-                  {e.title} ({e.count})
+                  {nameOf(e)} ({e.count})
                 </SelectItem>
               ))}
             </SelectPopup>
@@ -164,16 +168,17 @@ export function RegistrationsManager({ initialRegistrations }: { initialRegistra
 
       {registrations.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          No registrations yet — they appear here as students sign up from an event&apos;s page.
+          No registrations yet — they appear here as students sign up for an event or a program.
         </p>
       )}
 
       {groups.map((group) => (
         <section key={group.id} aria-labelledby={`reg-${group.id}`} className="space-y-3">
           <h2 id={`reg-${group.id}`} className="text-base font-semibold text-foreground">
-            {group.title}
+            {nameOf(group)}
             <span className="ml-2 text-sm font-normal text-muted-foreground">
-              {group.date} · {group.count} registered
+              {group.date ? `${group.date} · ` : ''}
+              {group.count} registered
             </span>
           </h2>
           {visible

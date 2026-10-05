@@ -25,7 +25,10 @@ export default async function StaffApplicationsPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold tracking-tight text-foreground">Applications</h1>
-      <p className="mt-1 text-muted-foreground">Everyone who has applied to join the Centre.</p>
+      <p className="mt-1 text-muted-foreground">
+        Everyone who has applied to join the Centre. New ones are marked on the Applications link until someone reviews
+        them. Setting an application to Accepted or Rejected emails the applicant automatically.
+      </p>
       {error && (
         <p className="mt-4 rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           Couldn&apos;t load applications from the sheet: {error}

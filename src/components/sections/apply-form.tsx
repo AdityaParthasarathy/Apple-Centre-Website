@@ -249,7 +249,8 @@ export function ApplyForm() {
           Application received!
         </TextEffect>
         <p className="mt-2 text-sm text-muted-foreground">
-          The Apple Centre team has been notified and will review your application shortly.
+          The Apple Centre team has been notified and will review your application shortly. We&apos;ll email you once
+          there&apos;s a decision.
         </p>
       </motion.div>
     )

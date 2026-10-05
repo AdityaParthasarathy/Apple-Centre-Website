@@ -11,10 +11,11 @@ function sheetProgramToProgram(p: SheetProgram): Program {
     level: p.level,
     topics: p.topics ? p.topics.split(',').map((v) => v.trim()).filter(Boolean) : [],
     image: p.image,
+    pinned: !!p.pinned,
   }
 }
 
-/** Static seed programs plus anything faculty have added via the portal. */
+/** Static seed programs plus anything faculty have added via the portal, pinned ones first. */
 export async function getAllPrograms(): Promise<Program[]> {
   let sheetPrograms: Program[] = []
   try {
@@ -24,5 +25,7 @@ export async function getAllPrograms(): Promise<Program[]> {
     // Apps Script not configured yet, or temporarily unreachable — the site
     // still works with just the static seed set.
   }
-  return [...staticPrograms, ...sheetPrograms]
+  // Pinned first. The sort is stable, so within each group the order is the
+  // sheet's own (the order they were added in).
+  return [...staticPrograms, ...sheetPrograms].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned))
 }

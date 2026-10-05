@@ -11,45 +11,38 @@ import { IMacMarqueeField } from '@/components/patterns/imac-marquee-field'
 // the screen fills the viewport and the live embedded section
 // (/embed/<id> — its own minimal, pre-built route that renders ONLY that
 // one section, not a second copy of the whole site) fades in.
-// Once open, the iframe becomes scroll-interactive (see iframePointerEvents
-// below) so you can actually scroll through everything in that section —
-// ordinary browser scroll-chaining then hands control back to this page,
-// continuing the same motion in reverse (content fades, shell shrinks,
-// bezel returns) right as you reach the bottom of that section, before the
-// next iMac starts growing in turn. No click, no modal, no state of our
-// own: purely a function of scroll position.
+// Once open, the page inside is NOT scrolled by the iframe itself: the iframe
+// is made as tall as its whole page and the window's runway is made that much
+// longer, so this page's own scroll slides the embedded page up through the
+// screen (see `pageShift`), and right after it reaches its bottom the motion
+// plays in reverse (content fades, shell shrinks, bezel returns) before the
+// next iMac starts growing in turn. No click, no modal, no state of our own:
+// purely a function of scroll position.
 const WINDOWS = [
   { id: 'about', label: 'About the Centre', color: 'oklch(80% 0.1 150)' },
   { id: 'facilities', label: 'Labs & Facilities', color: 'oklch(76% 0.1 235)' },
   { id: 'projects', label: 'Student Projects', color: 'oklch(78% 0.09 300)' },
 ] as const
 
-// Phones and other touch screens. There the embedded page can't be scrolled
-// from inside its own little iframe the way it is with a mouse wheel: iOS
-// Safari sizes `100vh` to the tallest the viewport ever gets (so the bottom of
-// the frame sits under the toolbar), and a finger swipe that starts inside an
-// iframe bounces between scrolling the frame and scrolling this page — so the
-// window shrank away after about one screenful. On these screens the iframe is
-// instead made as tall as its whole page, and the page's own (native) scroll
-// slides it up through the screen during an extra "hold" stretch of the
-// runway. Nothing scrolls inside the frame at all.
-const DRIVEN_QUERY = '(pointer: coarse), (max-width: 767px)'
-
+// Why the embedded page never scrolls inside its own frame: an iframe that
+// scrolls on its own has to hand the gesture back to this page at its edges, and
+// that hand-off is where scrolling used to stall — on phones (iOS sizes `100vh`
+// to the tallest the viewport gets, and a swipe that starts inside an iframe
+// bounces between the frame and the page, so the window shrank after about one
+// screenful) and, with a mouse, whenever the wheel and the frame disagreed
+// about who owned the gesture. With the frame as tall as its page there is
+// nothing to hand off: this page scrolls, always.
+//
+// Only with reduced motion is the old plain scrollable frame kept (see the
+// prefers-reduced-motion block in globals.css), which needs no help.
 function useDrivenLayout() {
   const [driven, setDriven] = useState(false)
   useEffect(() => {
-    const query = window.matchMedia(DRIVEN_QUERY)
-    // With reduced motion the window is a plain scrollable frame (see the
-    // prefers-reduced-motion block in globals.css), which needs no help.
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)')
-    const update = () => setDriven(query.matches && !reduced.matches)
+    const update = () => setDriven(!reduced.matches)
     update()
-    query.addEventListener('change', update)
     reduced.addEventListener('change', update)
-    return () => {
-      query.removeEventListener('change', update)
-      reduced.removeEventListener('change', update)
-    }
+    return () => reduced.removeEventListener('change', update)
   }, [])
   return driven
 }
@@ -74,24 +67,25 @@ function IMacScrollWindow({
   const lenis = useLenis()
   const driven = useDrivenLayout()
 
-  // Touch screens only (see DRIVEN_QUERY): how tall the embedded page is, and
+  // How tall the embedded page is, and
   // so how much extra runway the window needs to scroll all of it through.
   // Kept once measured (even after the iframe unmounts) so the runway never
   // changes length while you scroll past it.
   const [contentHeight, setContentHeight] = useState(0)
-  // The smallest viewport height seen (iOS: toolbars expanded). Using that,
-  // rather than the live innerHeight, keeps `extra` from wobbling every time
-  // the browser's toolbar slides in or out mid-scroll.
+  // The viewport height the extra runway is sized for. On a touch screen it is
+  // the smallest seen (iOS: toolbars expanded), so `extra` doesn't wobble every
+  // time the browser's toolbar slides in or out mid-scroll; with a mouse it is
+  // simply the current window height.
   const [minViewport, setMinViewport] = useState(0)
   useEffect(() => {
+    const coarse = window.matchMedia('(pointer: coarse)')
     let lastWidth = window.innerWidth
     const track = () => {
-      if (window.innerWidth !== lastWidth) {
-        lastWidth = window.innerWidth
-        setMinViewport(window.innerHeight)
-      } else {
-        setMinViewport((prev) => (prev === 0 ? window.innerHeight : Math.min(prev, window.innerHeight)))
-      }
+      const widthChanged = window.innerWidth !== lastWidth
+      lastWidth = window.innerWidth
+      setMinViewport((prev) =>
+        coarse.matches && !widthChanged && prev > 0 ? Math.min(prev, window.innerHeight) : window.innerHeight
+      )
     }
     track()
     window.addEventListener('resize', track)
@@ -102,9 +96,9 @@ function IMacScrollWindow({
       ? Math.max(0, Math.round(contentHeight - (minViewport - CHROME_PX) + 24))
       : 0
 
-  // `scrollYProgress` drives every animation below exactly as before. On a
-  // desktop it is simply how far through the runway the page has scrolled.
-  // On touch screens the runway is `extra` pixels longer, and that stretch is
+  // `scrollYProgress` drives every animation below. It is how far through the
+  // runway the page has scrolled, except that the runway is `extra` pixels
+  // longer when the embedded page is taller than the screen, and that stretch is
   // spent holding the window open while the page inside slides up
   // (`pageShift`); the progress the animations see stands still through it
   // and resumes afterwards.
@@ -168,7 +162,7 @@ function IMacScrollWindow({
   // render and hydration) in the middle of the animation is a main-thread
   // hitch you can feel as you scroll in, and a still-loading page shows as a
   // blank screen when the window opens. Loaded early, the page is ready and
-  // (on touch screens) its height is known, so the runway is already its final
+  // its height is known, so the runway is already its final
   // length before you arrive.
   const [iframeActive, setIframeActive] = useState(false)
   useEffect(() => {
@@ -191,113 +185,60 @@ function IMacScrollWindow({
     setChromeHidden((prev) => (prev === shouldHide ? prev : shouldHide))
   })
 
-  // Browsers don't reliably chain a wheel/touch gesture from an exhausted
-  // iframe back up to the parent document the way they do for a nested
-  // <div>, so without this, hitting the bottom of the embedded section
-  // just dead-ends — the outer page's own scrollYProgress never advances
-  // again. Once the iframe (same-origin, so this is allowed) is scrolled
-  // all the way to a boundary in the gesture's direction, this hands the
-  // same delta to this page's own Lenis instance instead — the same API
-  // floating-dock.tsx already uses for its anchor links — continuing the
-  // shell-shrink/next-window motion exactly like a real user scroll would.
-  //
-  // (An earlier version tried re-dispatching a synthetic WheelEvent on
-  // `window` for Lenis's own listener to pick up — that never actually
-  // moved the page, for reasons that weren't worth fully chasing down once
-  // the officially-supported `lenis.scrollTo` API was sitting right there.)
+  // Track the embedded page's full height so the runway and the iframe can be
+  // made exactly that long, and — with a mouse — pass wheel turns made over the
+  // frame on to this page's Lenis, which is what actually moves the page (a
+  // wheel over an iframe is otherwise delivered to the iframe, not to us).
+  // Touch needs nothing: the frame is as tall as its page, so a swipe over it
+  // scrolls this page natively.
   useEffect(() => {
     const iframe = iframeRef.current
-    if (!iframe) return
+    if (!iframe || !driven) return
 
     let detach: (() => void) | undefined
-
-    // Touch screens: track the embedded page's full height so the runway and
-    // the iframe can be made exactly that long. No scroll hand-off is needed
-    // there — the frame is as tall as its page, so it never scrolls itself.
-    if (driven) {
-      const track = () => {
-        const doc = iframe.contentDocument
-        if (!doc) return
-        const measure = () => setContentHeight(Math.ceil(doc.body.offsetHeight))
-        measure()
-        const observer = new ResizeObserver(measure)
-        observer.observe(doc.body)
-        detach?.()
-        detach = () => observer.disconnect()
-      }
-      iframe.addEventListener('load', track)
-      if (iframe.contentDocument?.readyState === 'complete') track()
-      return () => {
-        iframe.removeEventListener('load', track)
-        detach?.()
-      }
-    }
-
-    if (!lenis) return
-
     const attach = () => {
+      detach?.()
       const win = iframe.contentWindow
-      if (!win) return
+      const doc = iframe.contentDocument
+      if (!win || !doc) return
 
-      const atBoundary = (delta: number) => {
-        const doc = win.document.documentElement
-        const maxScroll = doc.scrollHeight - win.innerHeight
-        return (delta > 0 && win.scrollY >= maxScroll - 2) || (delta < 0 && win.scrollY <= 2)
+      // Not 0: a frame that is still blank (or being swapped) must not wipe a
+      // height already measured, which would shorten the runway under you.
+      const measure = () => {
+        const height = Math.ceil(doc.body.offsetHeight)
+        if (height > 0) setContentHeight(height)
       }
+      measure()
+      const observer = new ResizeObserver(measure)
+      observer.observe(doc.body)
 
-      // Mirrors Lenis's own wheel handler almost exactly (see
-      // onVirtualScroll in its source) rather than a simpler
-      // `scrollTo(animatedScroll + delta)`: no `immediate` — every other
-      // scroll on this page (lenisOptions in smooth-scroll.tsx) eases over
-      // 1.2s, so an instant unsmoothed jump right at this hand-off read as
-      // a visible twitch against that backdrop. And critically,
-      // `targetScroll` (the pending destination), not `animatedScroll`
-      // (wherever the eased animation has actually reached so far) — a
-      // fast wheel fires many events before one tween finishes, and
-      // accumulating onto animatedScroll would make each new tick target
-      // a point BEHIND the one already in flight, stuttering the motion
-      // backwards instead of extending it. `programmatic: false` is what
-      // makes scrollTo update targetScroll immediately instead of only as
-      // the animation catches up, so the next tick sees the true pending
-      // target rather than a stale one.
       const onWheel = (e: WheelEvent) => {
-        if (!atBoundary(e.deltaY)) return
+        if (!lenis || e.ctrlKey) return // ctrl+wheel is the browser's zoom
         e.preventDefault()
-        lenis.scrollTo(lenis.targetScroll + e.deltaY, {
+        const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? window.innerHeight : 1
+        // `targetScroll` (where the eased scroll is heading), not
+        // `animatedScroll` (where it has got to): a fast wheel fires many
+        // events before one tween ends, and adding to the latter would aim
+        // each new turn behind the one already under way.
+        lenis.scrollTo(lenis.targetScroll + e.deltaY * unit, {
           programmatic: false,
           lerp: lenis.options.lerp,
           duration: lenis.options.duration,
           easing: lenis.options.easing,
         })
       }
-
-      // Touch never fires 'wheel' — without its own boundary check, a
-      // finger swipe past the end of an open window's content had nowhere
-      // to go, since the desktop-only fix above doesn't apply to it.
-      let touchY = 0
-      const onTouchStart = (e: TouchEvent) => {
-        touchY = e.touches[0].clientY
-      }
-      const onTouchMove = (e: TouchEvent) => {
-        const currentY = e.touches[0].clientY
-        const delta = touchY - currentY // finger moving up = scrolling down
-        touchY = currentY
-        if (!atBoundary(delta)) return
-        e.preventDefault()
-        lenis.scrollTo(lenis.animatedScroll + delta, { immediate: true })
-      }
-
       win.addEventListener('wheel', onWheel, { passive: false })
-      win.addEventListener('touchstart', onTouchStart, { passive: true })
-      win.addEventListener('touchmove', onTouchMove, { passive: false })
+
       detach = () => {
+        observer.disconnect()
         win.removeEventListener('wheel', onWheel)
-        win.removeEventListener('touchstart', onTouchStart)
-        win.removeEventListener('touchmove', onTouchMove)
       }
     }
 
     iframe.addEventListener('load', attach)
+    // Already loaded by the time this ran (the frame is mounted early).
+    const doc = iframe.contentDocument
+    if (doc && doc.readyState === 'complete' && doc.URL !== 'about:blank' && doc.body) attach()
     return () => {
       iframe.removeEventListener('load', attach)
       detach?.()
@@ -409,7 +350,7 @@ function IMacScrollWindow({
                     className="imac-reveal-iframe"
                     style={{
                       pointerEvents: iframePointerEvents,
-                      ...(driven && { height: contentHeight || undefined, y: pageShift }),
+                      ...(driven && { height: contentHeight || undefined, minHeight: '100dvh', y: pageShift }),
                     }}
                   />
                 )}

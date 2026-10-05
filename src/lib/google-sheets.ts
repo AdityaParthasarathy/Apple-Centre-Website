@@ -539,6 +539,9 @@ const ENTITIES: Record<string, Entity> = {
     tab: 'Programs',
     key: 'program',
     notFound: 'Program not found.',
+    // Added after the tab existed (the "Pinned" tick box); put in the sheet's
+    // header row the first time a program is saved, like the Gallery's `album`.
+    extraColumns: ['pinned'],
     read: (row, zone) => ({
       id: row.id,
       title: row.title,
@@ -547,6 +550,7 @@ const ENTITIES: Record<string, Entity> = {
       level: row.level,
       topics: row.topics || '',
       image: row.image,
+      pinned: toBool(row.pinned),
       createdBy: row.createdBy,
       createdAt: isoString(row.createdAt, zone),
     }),
@@ -558,6 +562,7 @@ const ENTITIES: Record<string, Entity> = {
       level: body.level,
       topics: body.topics || '',
       image: body.image,
+      pinned: !!body.pinned,
       createdBy: by(body),
       createdAt: now(),
     }),

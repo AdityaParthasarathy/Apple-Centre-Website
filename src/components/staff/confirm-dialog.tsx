@@ -18,6 +18,8 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel = 'Delete',
+  secondaryLabel,
+  onSecondary,
   onConfirm,
   onCancel,
 }: {
@@ -25,6 +27,10 @@ export function ConfirmDialog({
   title: string
   description: string
   confirmLabel?: string
+  /** An optional middle choice (e.g. "delete the folder but keep its photos"),
+   *  offered next to the destructive one. */
+  secondaryLabel?: string
+  onSecondary?: () => void
   onConfirm: () => void
   onCancel: () => void
 }) {
@@ -100,10 +106,15 @@ export function ConfirmDialog({
             <p id="confirm-dialog-description" className="mt-1.5 text-sm text-muted-foreground">
               {description}
             </p>
-            <div className="mt-5 flex justify-end gap-2">
+            <div className="mt-5 flex flex-wrap justify-end gap-2">
               <MotionButton variant="outline" onClick={onCancel}>
                 Cancel
               </MotionButton>
+              {secondaryLabel && onSecondary && (
+                <MotionButton variant="outline" onClick={onSecondary}>
+                  {secondaryLabel}
+                </MotionButton>
+              )}
               <MotionButton variant="destructive" onClick={onConfirm}>
                 {confirmLabel}
               </MotionButton>

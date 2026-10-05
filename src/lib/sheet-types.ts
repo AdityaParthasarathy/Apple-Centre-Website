@@ -172,6 +172,8 @@ export interface SheetProgram {
   level: 'beginner' | 'intermediate' | 'advanced'
   topics?: string
   image: string
+  /** Pinned programs are listed first, on the public page and in the portal. */
+  pinned?: boolean
   createdBy?: string
   createdAt?: string
 }

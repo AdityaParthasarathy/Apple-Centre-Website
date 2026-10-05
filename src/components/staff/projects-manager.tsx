@@ -8,7 +8,9 @@ import { Badge } from '@/components/ui/badge'
 import { MotionButton } from '@/components/patterns/motion-link'
 import { ImageUploadField } from '@/components/staff/image-upload-field'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
+import { usePersistentState } from '@/hooks/use-persistent-state'
 import { tempId, useLatest, useOptimisticList } from '@/hooks/use-optimistic-list'
+import { TagInput, parseTags, tagsToText } from '@/components/ui/tag-input'
 import { inputClass } from '@/lib/utils'
 import type { SheetProject } from '@/lib/sheet-types'
 
@@ -31,8 +33,8 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
     addAt: 'end',
   })
   const projects = list.items
-  const [form, setForm] = useState<FormState>(EMPTY_FORM)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = usePersistentState<FormState>('staff-draft:projects', EMPTY_FORM)
+  const [editingId, setEditingId] = usePersistentState<string | null>('staff-draft:projects:editing', null)
   const [error, setError] = useState<string | null>(null)
   const formRef = useLatest(form)
 
@@ -157,14 +159,13 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
             </div>
             <div>
               <label htmlFor="projectTechnologies" className="mb-1.5 block text-sm font-medium text-foreground">
-                Technologies (comma-separated)
+                Technologies
               </label>
-              <input
+              <TagInput
                 id="projectTechnologies"
-                placeholder="Swift, SwiftUI, CoreML"
-                value={form.technologies}
-                onChange={(e) => setForm({ ...form, technologies: e.target.value })}
-                className={inputClass}
+                placeholder="Type a technology and press Enter (e.g. Swift)"
+                value={parseTags(form.technologies)}
+                onValueChange={(tags) => setForm({ ...form, technologies: tagsToText(tags) })}
               />
             </div>
           </div>

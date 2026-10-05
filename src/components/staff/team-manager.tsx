@@ -7,7 +7,9 @@ import { Card } from '@/components/ui/card'
 import { MotionButton } from '@/components/patterns/motion-link'
 import { ImageUploadField } from '@/components/staff/image-upload-field'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
+import { usePersistentState } from '@/hooks/use-persistent-state'
 import { tempId, useLatest, useOptimisticList } from '@/hooks/use-optimistic-list'
+import { TagInput, parseTags, tagsToText } from '@/components/ui/tag-input'
 import { inputClass } from '@/lib/utils'
 import type { SheetTeamMember } from '@/lib/sheet-types'
 
@@ -22,8 +24,8 @@ export function TeamManager({ initialMembers }: { initialMembers: SheetTeamMembe
     addAt: 'end',
   })
   const members = list.items
-  const [form, setForm] = useState<FormState>(EMPTY_FORM)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = usePersistentState<FormState>('staff-draft:team', EMPTY_FORM)
+  const [editingId, setEditingId] = usePersistentState<string | null>('staff-draft:team:editing', null)
   const [error, setError] = useState<string | null>(null)
   const formRef = useLatest(form)
 
@@ -162,14 +164,13 @@ export function TeamManager({ initialMembers }: { initialMembers: SheetTeamMembe
           </div>
           <div>
             <label htmlFor="teamExpertise" className="mb-1.5 block text-sm font-medium text-foreground">
-              Expertise (comma-separated, optional)
+              Expertise <span className="font-normal text-muted-foreground">(optional)</span>
             </label>
-            <input
+            <TagInput
               id="teamExpertise"
-              placeholder="iOS, ARKit, Mentoring"
-              value={form.expertise}
-              onChange={(e) => setForm({ ...form, expertise: e.target.value })}
-              className={inputClass}
+              placeholder="Type an area and press Enter (e.g. ARKit)"
+              value={parseTags(form.expertise)}
+              onValueChange={(tags) => setForm({ ...form, expertise: tagsToText(tags) })}
             />
           </div>
 

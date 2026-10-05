@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useId, useRef } from 'react'
+import { useEffect, useId, useRef, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'motion/react'
 
 const FOCUSABLE_SELECTOR =
@@ -65,7 +66,17 @@ export function Modal({
     }
   }, [open])
 
-  return (
+  // Drawn on <body>, not where it is used: inside an animated card (a CSS
+  // transform) `position: fixed` stops meaning "the screen" and the window ends
+  // up clipped inside that card. (False on the server, true in the browser.)
+  const inBrowser = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
+  if (!inBrowser) return null
+
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -74,6 +85,7 @@ export function Modal({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.15 }}
+          data-lenis-prevent
           className="fixed inset-0 z-[70] flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:items-center"
         >
           <motion.div
@@ -94,6 +106,7 @@ export function Modal({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   )
 }

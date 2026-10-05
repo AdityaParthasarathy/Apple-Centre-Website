@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import { toast } from 'sonner'
 import { ExternalLink, Trash2 } from 'lucide-react'
@@ -10,6 +10,7 @@ import { StatusSteps } from '@/components/ui/status-steps'
 import { MotionButton } from '@/components/patterns/motion-link'
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/components/ui/select'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
+import { setPendingApplications } from '@/hooks/use-pending-applications'
 import { applicationProjects, type ApplicationStatus, type SheetApplication } from '@/lib/sheet-types'
 
 const STATUSES: ApplicationStatus[] = ['Pending', 'Reviewed', 'Accepted', 'Rejected']
@@ -24,24 +25,69 @@ const STATUS_BADGE: Record<ApplicationStatus, 'muted' | 'secondary' | 'accent' |
 export function ApplicationsManager({ initialApplications }: { initialApplications: SheetApplication[] }) {
   const [applications, setApplications] = useState(initialApplications)
   const [error, setError] = useState<string | null>(null)
+  // Changes still being saved: a refresh must not overwrite them on screen.
+  const saving = useRef(0)
+
+  // The list this page opened with can be up to a minute old. Pull the newest
+  // in behind it — on opening, and whenever the tab is looked at again — so an
+  // application that came in a moment ago is here, not just in the red marker.
+  useEffect(() => {
+    let cancelled = false
+    const sync = async () => {
+      try {
+        const res = await fetch('/api/staff/applications?fresh=1', { cache: 'no-store' })
+        const body = await res.json().catch(() => null)
+        if (!cancelled && res.ok && Array.isArray(body?.items) && saving.current === 0) {
+          setApplications(body.items as SheetApplication[])
+        }
+      } catch {
+        // Keep what is on screen.
+      }
+    }
+    void sync()
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void sync()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      cancelled = true
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [])
+
+  // Keeps the red marker on the Applications link in step with this list.
+  useEffect(() => {
+    setPendingApplications(applications.filter((a) => a.status === 'Pending').length)
+  }, [applications])
 
   const updateStatus = async (id: string, status: ApplicationStatus) => {
     const previous = applications
     const app = applications.find((a) => a.id === id)
     setApplications((prev) => prev.map((a) => (a.id === id ? { ...a, status } : a)))
     setError(null)
+    saving.current += 1
     try {
       const res = await fetch(`/api/staff/applications/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, name: app?.name, email: app?.email }),
       })
+      const body = await res.json().catch(() => null)
       if (!res.ok) throw new Error()
-      toast.success(`Marked as ${status}`)
+      // Accepted and Rejected email the applicant; say whether that worked, so
+      // nobody has to wonder whether the person has been told.
+      if (body?.emailed === 'sent') toast.success(`Marked as ${status} — an email was sent to ${app?.email}`)
+      else if (body?.emailed === 'failed') {
+        toast.warning(`Marked as ${status}, but the email to ${app?.email} couldn't be sent. Please let them know yourself.`, {
+          duration: 10000,
+        })
+      } else toast.success(`Marked as ${status}`)
     } catch {
       setApplications(previous)
       setError('Failed to update status. Please try again.')
       toast.error('Failed to update status. Please try again.')
+    } finally {
+      saving.current -= 1
     }
   }
 

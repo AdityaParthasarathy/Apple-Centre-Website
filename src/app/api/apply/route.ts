@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { after, NextResponse } from 'next/server'
 import { callAppsScript } from '@/lib/apps-script'
 import { escapeHtml, sendMail } from '@/lib/mailer'
 
@@ -194,6 +194,22 @@ async function sendNotificationEmail(
   })
 }
 
+/** A receipt to the applicant, so they know it went through and what happens
+ *  next (the Centre emails again once a decision is made). */
+async function sendApplicantReceipt(application: Application) {
+  await sendMail({
+    to: application.email,
+    replyTo: process.env.NOTIFY_EMAIL_TO,
+    subject: 'We received your Apple Centre application',
+    html: `
+      <p>Hi ${escapeHtml(application.name)},</p>
+      <p>Thanks for applying to the Centre for Apple Technologies — we've received your application.</p>
+      <p>Our team will review it and email you at this address once there's a decision. You don't need to do anything else.</p>
+      <p>Centre for Apple Technologies, RIT</p>
+    `,
+  })
+}
+
 async function logToSheet(application: Application, resumeUrl: string, projectFields: ProjectFields) {
   await callAppsScript('logApplication', { ...application, resumeUrl, ...projectFields })
 }
@@ -235,6 +251,17 @@ export async function POST(request: Request) {
       { status: 502 }
     )
   }
+
+  // The application is in (the sheet or the staff email has it), so the
+  // applicant is told so — after the reply, so they don't wait on the mail
+  // server. A failure here is only logged: the application itself is safe.
+  after(async () => {
+    try {
+      await sendApplicantReceipt(application)
+    } catch (error) {
+      console.error('Failed to send application receipt:', error)
+    }
+  })
 
   return NextResponse.json({ success: true })
 }

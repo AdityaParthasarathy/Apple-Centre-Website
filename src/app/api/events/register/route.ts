@@ -2,7 +2,7 @@ import { after, NextResponse } from 'next/server'
 import { callAppsScript } from '@/lib/apps-script'
 import { escapeHtml, sendMail } from '@/lib/mailer'
 import { findEventBySlug } from '@/lib/merge-events'
-import { isRegistrationOpen, REGISTRATION_YEARS } from '@/lib/event-registration'
+import { isRegistrationOpen, isValidPhone, MISSING_DETAILS_MESSAGE, REGISTRATION_YEARS } from '@/lib/event-registration'
 import type { SheetRegistration } from '@/lib/sheet-types'
 
 // Google Apps Script takes 3-45s to answer (see lib/apps-script.ts), and
@@ -20,7 +20,7 @@ interface RegisterResult {
 }
 
 /** Public endpoint — anyone can register for a published event, no login.
- *  Body: { eventId, name, email, phone?, college?, year?, website? }
+ *  Body: { eventId, name, email, phone, college, year, website? } — all required except `website`
  *  `website` is a honeypot: real people never see or fill it. */
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null)
@@ -41,10 +41,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, alreadyRegistered: false, spotsLeft: null, emailed: true })
   }
 
-  if (!eventId || !name || !EMAIL_PATTERN.test(email)) {
-    return NextResponse.json({ error: 'Please enter your name and a valid email address.' }, { status: 400 })
+  if (!eventId || !name || !EMAIL_PATTERN.test(email) || !phone || !college || !year) {
+    return NextResponse.json({ error: MISSING_DETAILS_MESSAGE }, { status: 400 })
   }
-  if (year && !REGISTRATION_YEARS.includes(year)) {
+  if (!isValidPhone(phone)) {
+    return NextResponse.json({ error: 'Please enter a valid phone number.' }, { status: 400 })
+  }
+  if (!REGISTRATION_YEARS.includes(year)) {
     return NextResponse.json({ error: 'Please choose a year from the list.' }, { status: 400 })
   }
 

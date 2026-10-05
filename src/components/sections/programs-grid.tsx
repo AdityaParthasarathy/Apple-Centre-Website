@@ -3,7 +3,7 @@
 import Image from 'next/image'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { AnimatedCtaLink } from '@/components/patterns/motion-link'
+import { ProgramRegistration } from '@/components/sections/program-registration'
 import { isExternalImage, cardImage } from '@/lib/utils'
 import type { Program } from '@/content/programs'
 import { motion } from 'motion/react'
@@ -56,9 +56,7 @@ export function ProgramsGrid({ programs }: { programs: Program[] }) {
               </div>
               <div className="mt-auto flex items-center justify-between border-t border-border pt-4">
                 <span className="text-sm text-muted-foreground">{program.duration}</span>
-                <AnimatedCtaLink href="/apply" size="sm">
-                  Apply Now
-                </AnimatedCtaLink>
+                <ProgramRegistration programId={program.id} programTitle={program.title} />
               </div>
             </div>
           </Card>

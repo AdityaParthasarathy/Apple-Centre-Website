@@ -4,9 +4,8 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { CheckCircle2, Ticket } from 'lucide-react'
 import { StatefulButton } from '@/components/ui/stateful-button'
-import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/components/ui/select'
-import { inputClass } from '@/lib/utils'
-import { REGISTRATION_YEARS } from '@/lib/event-registration'
+import { RegistrationFields } from '@/components/sections/registration-fields'
+import { isValidPhone, MISSING_DETAILS_MESSAGE } from '@/lib/event-registration'
 
 interface EventRegistrationProps {
   eventId: string
@@ -91,6 +90,19 @@ export function EventRegistration({ eventId, eventTitle, capacity, registered, o
     const field = (key: string) => form.get(key)?.toString().trim() ?? ''
     const email = field('email')
 
+    // The browser's own checks cover most of this; the year (a custom select)
+    // and the phone number's shape are checked here.
+    if (!year || !field('name') || !field('college')) {
+      setError(MISSING_DETAILS_MESSAGE)
+      setSubmitting(false)
+      return
+    }
+    if (!isValidPhone(field('phone'))) {
+      setError('Please enter a valid phone number.')
+      setSubmitting(false)
+      return
+    }
+
     try {
       const res = await fetch('/api/events/register', {
         method: 'POST',
@@ -139,54 +151,7 @@ export function EventRegistration({ eventId, eventTitle, capacity, registered, o
         </p>
       </div>
 
-      <div>
-        <label htmlFor="regName" className="mb-1.5 block text-sm font-medium text-foreground">
-          Name
-        </label>
-        <input id="regName" name="name" type="text" required maxLength={100} autoComplete="name" className={inputClass} />
-      </div>
-      <div>
-        <label htmlFor="regEmail" className="mb-1.5 block text-sm font-medium text-foreground">
-          Email
-        </label>
-        <input id="regEmail" name="email" type="email" required maxLength={200} autoComplete="email" className={inputClass} />
-      </div>
-      <div>
-        <label htmlFor="regPhone" className="mb-1.5 block text-sm font-medium text-foreground">
-          Phone <span className="font-normal text-muted-foreground">(optional)</span>
-        </label>
-        <input id="regPhone" name="phone" type="tel" maxLength={30} autoComplete="tel" className={inputClass} />
-      </div>
-      <div>
-        <label htmlFor="regCollege" className="mb-1.5 block text-sm font-medium text-foreground">
-          College / department <span className="font-normal text-muted-foreground">(optional)</span>
-        </label>
-        <input id="regCollege" name="college" type="text" maxLength={150} className={inputClass} />
-      </div>
-      <div>
-        <label htmlFor="regYear" className="mb-1.5 block text-sm font-medium text-foreground">
-          Year <span className="font-normal text-muted-foreground">(optional)</span>
-        </label>
-        <Select value={year} onValueChange={(value) => setYear(value as string)}>
-          <SelectTrigger id="regYear">
-            <SelectValue placeholder="Select your year" />
-          </SelectTrigger>
-          <SelectPopup>
-            {REGISTRATION_YEARS.map((option) => (
-              <SelectItem key={option} value={option}>
-                {option}
-              </SelectItem>
-            ))}
-          </SelectPopup>
-        </Select>
-      </div>
-
-      {/* Honeypot: off-screen and out of the tab order, so people never see
-          or fill it; bots that fill every input give themselves away. */}
-      <div aria-hidden="true" className="absolute -left-[9999px] h-0 w-0 overflow-hidden">
-        <label htmlFor="regWebsite">Website</label>
-        <input id="regWebsite" name="website" type="text" tabIndex={-1} autoComplete="off" />
-      </div>
+      <RegistrationFields idPrefix="reg" year={year} onYearChange={setYear} />
 
       {error && (
         <p className="text-sm text-destructive" role="alert">

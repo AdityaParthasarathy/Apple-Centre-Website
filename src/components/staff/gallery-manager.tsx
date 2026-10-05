@@ -69,6 +69,7 @@ export function GalleryManager({
   >(null)
   const dialogKey = useRef(0)
   const [pendingFolderDelete, setPendingFolderDelete] = useState<string | null>(null)
+  const pendingFolderCount = pendingFolderDelete ? photosIn(pendingFolderDelete).length : 0
   const [addCategory, setAddCategory] = useState<PhotoCategory>('event')
   const addInputRef = useRef<HTMLInputElement>(null)
   const [adding, setAdding] = useState(false)
@@ -255,18 +256,56 @@ export function GalleryManager({
     else toast.error(result.message)
   }
 
-  const confirmFolderDelete = async () => {
+  /** Deletes the folder and leaves its photos, just outside any folder. */
+  const deleteFolderKeepPhotos = async () => {
     const id = pendingFolderDelete
     setPendingFolderDelete(null)
     if (!id) return
     if (openId === id) setOpenId(null)
     const result = await folders.remove(id)
     if (result.ok) {
-      // The photos stay, just outside any folder.
       photos.setItems((prev) => prev.map((p) => (p.album === id ? { ...p, album: '' } : p)))
       toast.success('Folder deleted — its photos were kept')
     } else {
       toast.error(result.message)
+    }
+  }
+
+  /** Deletes every photo in the folder, then the folder itself. One photo at a
+   *  time (Google's script copes best that way, and the order matters: the
+   *  folder only goes once every photo is gone). If one fails, it stops there
+   *  with the folder and the remaining photos untouched, so nothing is left
+   *  half-removed without saying so. */
+  const deleteFolderAndPhotos = async () => {
+    const id = pendingFolderDelete
+    setPendingFolderDelete(null)
+    if (!id) return
+    const folder = albumById.get(id)
+    const inside = photosIn(id)
+    if (openId === id) setOpenId(null)
+
+    const progress = toast.loading(inside.length > 0 ? `Deleting photos… 0 of ${inside.length}` : 'Deleting folder…')
+    for (let i = 0; i < inside.length; i++) {
+      const result = await photos.remove(inside[i].id)
+      if (!result.ok) {
+        toast.error(
+          `Stopped after ${i} of ${inside.length} photos: ${result.message} The folder was not deleted — try again.`,
+          { id: progress, duration: 10000 }
+        )
+        return
+      }
+      toast.loading(`Deleting photos… ${i + 1} of ${inside.length}`, { id: progress })
+    }
+    const result = await folders.remove(id)
+    if (result.ok) {
+      toast.success(
+        inside.length > 0
+          ? `Folder "${folder?.name ?? ''}" and its ${inside.length} ${inside.length === 1 ? 'photo' : 'photos'} deleted`
+          : 'Folder deleted',
+        { id: progress }
+      )
+    } else {
+      toast.error(`The photos were deleted but the folder wasn't: ${result.message}`, { id: progress, duration: 10000 })
     }
   }
 
@@ -634,9 +673,15 @@ export function GalleryManager({
       <ConfirmDialog
         open={pendingFolderDelete !== null}
         title="Delete this folder?"
-        description="The photos inside it are kept — they just won't be in a folder any more."
-        confirmLabel="Delete folder"
-        onConfirm={confirmFolderDelete}
+        description={
+          pendingFolderCount === 0
+            ? "The folder is empty. This can't be undone."
+            : `Choose what happens to the ${pendingFolderCount} ${pendingFolderCount === 1 ? 'photo' : 'photos'} inside. Deleting the photos can't be undone.`
+        }
+        confirmLabel={pendingFolderCount === 0 ? 'Delete folder' : 'Delete folder and photos'}
+        secondaryLabel={pendingFolderCount === 0 ? undefined : 'Delete folder, keep photos'}
+        onSecondary={deleteFolderKeepPhotos}
+        onConfirm={deleteFolderAndPhotos}
         onCancel={() => setPendingFolderDelete(null)}
       />
     </div>

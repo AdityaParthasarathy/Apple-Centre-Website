@@ -39,7 +39,7 @@ export function SelectPopup({
 }: SelectPrimitive.Popup.Props) {
   return (
     <SelectPrimitive.Portal>
-      <SelectPrimitive.Positioner className="z-50 outline-none" sideOffset={6}>
+      <SelectPrimitive.Positioner className="z-[80] outline-none" sideOffset={6}>
         <SelectPrimitive.Popup
           className={cn(
             'w-[var(--anchor-width)] max-h-64 overflow-y-auto rounded-lg border border-border/60 bg-card/95 p-1 text-sm shadow-lg backdrop-blur-md outline-none',

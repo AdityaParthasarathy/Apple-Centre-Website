@@ -75,3 +75,34 @@ export function AnimatedCtaLink({
     </MotionLink>
   )
 }
+
+export interface AnimatedCtaButtonProps extends Omit<ComponentProps<typeof motion.button>, 'children'> {
+  size?: keyof typeof ANIMATED_BUTTON_SIZES
+  onDark?: boolean
+  children: ReactNode
+}
+
+/** AnimatedCtaLink's twin for a click that does something on the page (open a
+ *  form) rather than going to another page: same ripple-fill look, but a real
+ *  <button>. */
+export function AnimatedCtaButton({
+  className,
+  size = 'default',
+  onDark = false,
+  children,
+  type = 'button',
+  ...props
+}: AnimatedCtaButtonProps) {
+  return (
+    <motion.button
+      type={type}
+      className={cn('animated-button', onDark && 'animated-button--on-dark', ANIMATED_BUTTON_SIZES[size], className)}
+      whileTap={{ scale: 0.96 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+      {...props}
+    >
+      <span className="animated-button-content">{children}</span>
+      <span className="animated-button-fill" aria-hidden="true" />
+    </motion.button>
+  )
+}

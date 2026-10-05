@@ -9,6 +9,7 @@ import { MotionButton } from '@/components/patterns/motion-link'
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/components/ui/select'
 import { ImageUploadField } from '@/components/staff/image-upload-field'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
+import { usePersistentState } from '@/hooks/use-persistent-state'
 import { tempId, useLatest, useOptimisticList } from '@/hooks/use-optimistic-list'
 import { inputClass } from '@/lib/utils'
 import { formatTimeRange, parseTimeRange } from '@/lib/event-time'
@@ -40,8 +41,8 @@ export function EventsManager({ initialEvents }: { initialEvents: SheetEvent[] }
     addAt: 'end',
   })
   const events = list.items
-  const [form, setForm] = useState<FormState>(EMPTY_FORM)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = usePersistentState<FormState>('staff-draft:events', EMPTY_FORM)
+  const [editingId, setEditingId] = usePersistentState<string | null>('staff-draft:events:editing', null)
   const [error, setError] = useState<string | null>(null)
   const formRef = useLatest(form)
 

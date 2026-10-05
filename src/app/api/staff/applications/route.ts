@@ -5,16 +5,21 @@ import type { SheetApplication } from '@/lib/sheet-types'
 
 // Google Apps Script takes 3-45s to answer (see lib/apps-script.ts), and
 // Vercel cuts a function off at its plan default (often 10s) unless the route
-// says otherwise — which made photo uploads and saves fail with a bare
-// platform error. 60s is the ceiling that is valid on every Vercel plan.
+// says otherwise. 60s is the ceiling that is valid on every Vercel plan.
 export const maxDuration = 60
 
-export async function GET() {
+/** The applications. By default from the shared read cache (at most a minute
+ *  old, and a new application expires it at once) — that is what the portal's
+ *  "new applications" marker polls, so a few open tabs don't eat into Google's
+ *  limit of 60 sheet reads a minute. `?fresh=1` goes to the sheet itself, for
+ *  the Applications page when it opens. */
+export async function GET(request: Request) {
+  const fresh = new URL(request.url).searchParams.get('fresh') === '1'
   const session = await getFacultySession()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   try {
-    const result = await callAppsScript<{ items: SheetApplication[] }>('listApplications')
+    const result = await callAppsScript<{ items: SheetApplication[] }>('listApplications', {}, { fresh })
     return NextResponse.json(result)
   } catch (error) {
     console.error('Failed to list applications:', error)

@@ -4,29 +4,55 @@ import { useState, type KeyboardEvent } from 'react'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
-interface TagInputProps {
-  name: string
-  placeholder?: string
-  className?: string
+/** "Swift, SwiftUI , Xcode" -> ["Swift", "SwiftUI", "Xcode"]. The staff forms
+ *  keep a list of tags as one comma-separated string (that is how the sheet
+ *  stores it), so this and `tagsToText` convert at the edges. */
+export function parseTags(text: string | undefined): string[] {
+  return (text ?? '')
+    .split(',')
+    .map((tag) => tag.trim())
+    .filter(Boolean)
 }
 
-/** Type a value, press Enter or comma to add it as a removable chip. Syncs to a hidden input (comma-joined) for plain FormData submission. */
-export function TagInput({ name, placeholder, className }: TagInputProps) {
-  const [tags, setTags] = useState<string[]>([])
+export function tagsToText(tags: string[]): string {
+  return tags.join(', ')
+}
+
+interface TagInputProps {
+  /** For plain FormData submission: the tags are mirrored into a hidden input of this name (comma-joined). */
+  name?: string
+  /** Pass `id` so a <label htmlFor> reaches the typing box. */
+  id?: string
+  placeholder?: string
+  className?: string
+  /** Controlled mode: the form owns the list (needed to keep a draft, or to fill it when editing). */
+  value?: string[]
+  onValueChange?: (tags: string[]) => void
+}
+
+/** Type a value, press Enter or comma to add it as a removable chip. Works on
+ *  its own (public forms read the hidden input) or controlled by a form's state
+ *  (staff forms). */
+export function TagInput({ name, id, placeholder, className, value: controlled, onValueChange }: TagInputProps) {
+  const [ownTags, setOwnTags] = useState<string[]>([])
   const [value, setValue] = useState('')
+  const tags = controlled ?? ownTags
+
+  const commit = (next: string[]) => {
+    if (controlled === undefined) setOwnTags(next)
+    onValueChange?.(next)
+  }
 
   const addTag = (raw: string) => {
     const tag = raw.trim()
-    if (!tag || tags.includes(tag)) {
-      setValue('')
-      return
-    }
-    setTags((prev) => [...prev, tag])
     setValue('')
+    // Case-insensitive, so "swift" can't be added next to "Swift".
+    if (!tag || tags.some((t) => t.toLowerCase() === tag.toLowerCase())) return
+    commit([...tags, tag])
   }
 
   const removeTag = (tag: string) => {
-    setTags((prev) => prev.filter((t) => t !== tag))
+    commit(tags.filter((t) => t !== tag))
   }
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -63,6 +89,7 @@ export function TagInput({ name, placeholder, className }: TagInputProps) {
         </span>
       ))}
       <input
+        id={id}
         type="text"
         value={value}
         onChange={(e) => setValue(e.target.value)}
@@ -71,7 +98,7 @@ export function TagInput({ name, placeholder, className }: TagInputProps) {
         placeholder={tags.length === 0 ? placeholder : ''}
         className="min-w-[8rem] flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
       />
-      <input type="hidden" name={name} value={tags.join(', ')} />
+      {name && <input type="hidden" name={name} value={tagsToText(tags)} />}
     </div>
   )
 }

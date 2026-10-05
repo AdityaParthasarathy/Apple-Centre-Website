@@ -8,6 +8,7 @@ import { PortalNav } from '@/components/staff/portal-nav'
 import { LogoutButton } from '@/components/staff/logout-button'
 import { AvatarPlaceholder } from '@/components/ui/avatar-placeholder'
 import { cn } from '@/lib/utils'
+import { usePendingApplications } from '@/hooks/use-pending-applications'
 
 function Brand({ onNavigate }: { onNavigate?: () => void }) {
   return (
@@ -59,6 +60,7 @@ function PanelBody({ name, onNavigate }: { name: string; onNavigate?: () => void
 export function PortalShell({ name, children }: { name: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const close = () => setOpen(false)
+  const pending = usePendingApplications()
 
   // While the drawer is open: Escape closes it, and the page behind it
   // stops scrolling.
@@ -95,9 +97,13 @@ export function PortalShell({ name, children }: { name: string; children: React.
             aria-label="Open menu"
             aria-expanded={open}
             aria-controls="portal-drawer"
-            className="flex size-11 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-muted/60"
+            className="relative flex size-11 items-center justify-center rounded-lg text-foreground transition-colors hover:bg-muted/60"
           >
             <Menu className="h-5 w-5" aria-hidden="true" />
+            {/* The menu hides the Applications marker, so a dot on the button says "something is waiting". */}
+            {pending ? (
+              <span aria-hidden="true" className="absolute right-2 top-2 size-2.5 rounded-full bg-red-600 ring-2 ring-background" />
+            ) : null}
           </button>
           <Brand />
         </header>

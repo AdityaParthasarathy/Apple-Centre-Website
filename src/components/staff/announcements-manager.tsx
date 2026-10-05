@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { MotionButton } from '@/components/patterns/motion-link'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
+import { usePersistentState } from '@/hooks/use-persistent-state'
 import { tempId, useLatest, useOptimisticList } from '@/hooks/use-optimistic-list'
 import { inputClass } from '@/lib/utils'
 import type { SheetAnnouncement } from '@/lib/sheet-types'
@@ -22,8 +23,8 @@ export function AnnouncementsManager({ initialAnnouncements }: { initialAnnounce
     addAt: 'start',
   })
   const announcements = list.items
-  const [form, setForm] = useState<FormState>(EMPTY_FORM)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = usePersistentState<FormState>('staff-draft:announcements', EMPTY_FORM)
+  const [editingId, setEditingId] = usePersistentState<string | null>('staff-draft:announcements:editing', null)
   const [error, setError] = useState<string | null>(null)
   const formRef = useLatest(form)
 

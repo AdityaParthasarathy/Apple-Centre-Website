@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getFacultySession } from '@/lib/session'
 import { callAppsScript } from '@/lib/apps-script'
-import { sendMail } from '@/lib/mailer'
+import { escapeHtml, sendMail } from '@/lib/mailer'
 import { failureResponse } from '@/lib/api-errors'
 
 // Google Apps Script takes 3-45s to answer (see lib/apps-script.ts), and
@@ -32,15 +32,25 @@ const DECISION_EMAIL: Record<string, { subject: string; html: (name: string) => 
 }
 
 // Failing to notify the applicant shouldn't block the status change itself
-// (the faculty member's action already succeeded on the data that matters)
-// — log it and let the request still report success.
-async function sendDecisionEmail(status: string, name?: string, email?: string) {
+// (the faculty member's action already succeeded on the data that matters) —
+// log it and let the request still report success, but say that the email
+// didn't go so the portal can tell the faculty member to let them know.
+async function sendDecisionEmail(status: string, name?: string, email?: string): Promise<'sent' | 'failed' | 'none'> {
   const template = DECISION_EMAIL[status]
-  if (!template || !email) return
+  if (!template) return 'none'
+  if (!email) return 'failed'
   try {
-    await sendMail({ to: email, subject: template.subject, html: template.html(name || 'there') })
+    await sendMail({
+      to: email,
+      // A reply goes to the Centre, not into the sending account's void.
+      replyTo: process.env.NOTIFY_EMAIL_TO,
+      subject: template.subject,
+      html: template.html(escapeHtml(name || 'there')),
+    })
+    return 'sent'
   } catch (error) {
     console.error('Failed to send decision email:', error)
+    return 'failed'
   }
 }
 
@@ -56,8 +66,8 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
   try {
     const result = await callAppsScript('updateApplicationStatus', { id, status: body.status })
-    await sendDecisionEmail(body.status, body.name, body.email)
-    return NextResponse.json(result)
+    const emailed = await sendDecisionEmail(body.status, body.name, body.email)
+    return NextResponse.json({ ...result, emailed })
   } catch (error) {
     console.error('Failed to update application status:', error)
     return failureResponse(error, 'Failed to update the application.')

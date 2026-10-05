@@ -6,6 +6,7 @@ export interface Program {
   level: 'beginner' | 'intermediate' | 'advanced'
   topics: string[]
   image: string
+  pinned?: boolean
 }
 
 // Formerly hardcoded here — migrated into the Programs sheet (same ids) so

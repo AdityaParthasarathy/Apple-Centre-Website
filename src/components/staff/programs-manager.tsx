@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Pencil, Trash2 } from 'lucide-react'
 import { Card } from '@/components/ui/card'
@@ -9,7 +9,9 @@ import { MotionButton } from '@/components/patterns/motion-link'
 import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/components/ui/select'
 import { ImageUploadField } from '@/components/staff/image-upload-field'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
+import { usePersistentState } from '@/hooks/use-persistent-state'
 import { tempId, useLatest, useOptimisticList } from '@/hooks/use-optimistic-list'
+import { TagInput, parseTags, tagsToText } from '@/components/ui/tag-input'
 import { inputClass } from '@/lib/utils'
 import type { SheetProgram } from '@/lib/sheet-types'
 
@@ -22,6 +24,7 @@ const EMPTY_FORM = {
   level: 'beginner' as SheetProgram['level'],
   topics: '',
   image: '',
+  pinned: false,
 }
 type FormState = typeof EMPTY_FORM
 
@@ -32,9 +35,11 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
     noun: 'program',
     addAt: 'end',
   })
-  const programs = list.items
-  const [form, setForm] = useState<FormState>(EMPTY_FORM)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  // Pinned programs first, like the public page shows them (the sort is stable,
+  // so everything else keeps the order it was added in).
+  const programs = useMemo(() => [...list.items].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned)), [list.items])
+  const [form, setForm] = usePersistentState<FormState>('staff-draft:programs', EMPTY_FORM)
+  const [editingId, setEditingId] = usePersistentState<string | null>('staff-draft:programs:editing', null)
   const [error, setError] = useState<string | null>(null)
   const formRef = useLatest(form)
 
@@ -47,6 +52,7 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
       level: program.level,
       topics: program.topics ?? '',
       image: program.image,
+      pinned: !!program.pinned,
     })
     setError(null)
   }
@@ -175,17 +181,24 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
           </div>
           <div>
             <label htmlFor="programTopics" className="mb-1.5 block text-sm font-medium text-foreground">
-              Topics (comma-separated)
+              Topics
             </label>
-            <input
+            <TagInput
               id="programTopics"
-              placeholder="Swift, SwiftUI, Xcode"
-              value={form.topics}
-              onChange={(e) => setForm({ ...form, topics: e.target.value })}
-              className={inputClass}
+              placeholder="Type a topic and press Enter (e.g. SwiftUI)"
+              value={parseTags(form.topics)}
+              onValueChange={(tags) => setForm({ ...form, topics: tagsToText(tags) })}
             />
           </div>
           <ImageUploadField required value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
+          <label className="flex items-center gap-2 text-sm text-foreground">
+            <input
+              type="checkbox"
+              checked={form.pinned}
+              onChange={(e) => setForm({ ...form, pinned: e.target.checked })}
+            />
+            Pinned (shows first)
+          </label>
 
           {error && (
             <p className="text-sm text-destructive" role="alert">
@@ -214,6 +227,7 @@ export function ProgramsManager({ initialPrograms }: { initialPrograms: SheetPro
                 <Badge variant="secondary" className="text-xs capitalize">
                   {program.level}
                 </Badge>
+                {program.pinned && <Badge variant="accent" className="text-xs">Pinned</Badge>}
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{program.duration}</p>
             </div>
