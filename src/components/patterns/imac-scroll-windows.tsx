@@ -1,8 +1,7 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react'
 import { motion, useMotionValue, useTransform, useMotionValueEvent } from 'motion/react'
-import { useElementScrollProgress } from '@/hooks/use-scroll-progress'
 import { useLenis } from 'lenis/react'
 import { IMacMarqueeField } from '@/components/patterns/imac-marquee-field'
 
@@ -34,8 +33,6 @@ const WINDOWS = [
 // instead made as tall as its whole page, and the page's own (native) scroll
 // slides it up through the screen during an extra "hold" stretch of the
 // runway. Nothing scrolls inside the frame at all.
-const viewportHeight = () => (typeof window === 'undefined' ? 800 : window.innerHeight)
-
 const DRIVEN_QUERY = '(pointer: coarse), (max-width: 767px)'
 
 function useDrivenLayout() {
@@ -74,79 +71,124 @@ function IMacScrollWindow({
 }) {
   const wrapperRef = useRef<HTMLDivElement>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
-  const rawProgress = useElementScrollProgress(wrapperRef, ['start start', 'end end'])
   const lenis = useLenis()
   const driven = useDrivenLayout()
 
   // Touch screens only (see DRIVEN_QUERY): how tall the embedded page is, and
   // so how much extra runway the window needs to scroll all of it through.
+  // Kept once measured (even after the iframe unmounts) so the runway never
+  // changes length while you scroll past it.
   const [contentHeight, setContentHeight] = useState(0)
-  const extra = driven && contentHeight > 0 ? Math.max(0, Math.round(contentHeight - (viewportHeight() - CHROME_PX) + 24)) : 0
+  // The smallest viewport height seen (iOS: toolbars expanded). Using that,
+  // rather than the live innerHeight, keeps `extra` from wobbling every time
+  // the browser's toolbar slides in or out mid-scroll.
+  const [minViewport, setMinViewport] = useState(0)
+  useEffect(() => {
+    let lastWidth = window.innerWidth
+    const track = () => {
+      if (window.innerWidth !== lastWidth) {
+        lastWidth = window.innerWidth
+        setMinViewport(window.innerHeight)
+      } else {
+        setMinViewport((prev) => (prev === 0 ? window.innerHeight : Math.min(prev, window.innerHeight)))
+      }
+    }
+    track()
+    window.addEventListener('resize', track)
+    return () => window.removeEventListener('resize', track)
+  }, [])
+  const extra =
+    driven && contentHeight > 0 && minViewport > 0
+      ? Math.max(0, Math.round(contentHeight - (minViewport - CHROME_PX) + 24))
+      : 0
 
   // `scrollYProgress` drives every animation below exactly as before. On a
-  // desktop it IS the raw runway progress. On touch screens the runway is
-  // `extra` pixels longer, and that stretch is spent holding the window open
-  // while the page inside slides up (`pageShift`); the progress the
-  // animations see stands still through it and resumes afterwards.
+  // desktop it is simply how far through the runway the page has scrolled.
+  // On touch screens the runway is `extra` pixels longer, and that stretch is
+  // spent holding the window open while the page inside slides up
+  // (`pageShift`); the progress the animations see stands still through it
+  // and resumes afterwards.
+  //
+  // Computed straight from window.scrollY and a cached position, in the same
+  // commit that changes the runway's length (layout effect, not a one-frame-
+  // late ResizeObserver) — a stale measurement here showed up as the shell
+  // visibly jumping the moment the runway grew.
   const scrollYProgress = useMotionValue(0)
   const pageShift = useMotionValue(0)
-  const travel = useRef(1)
-  const recompute = useCallback(() => {
-    const p = rawProgress.get()
-    if (extra <= 0) {
-      scrollYProgress.set(p)
-      pageShift.set(0)
-      return
-    }
-    const base = Math.max(1, travel.current - extra)
-    const px = p * travel.current
-    const holdStart = HOLD_START * base
-    if (px <= holdStart) {
-      scrollYProgress.set(px / base)
-      pageShift.set(0)
-    } else if (px <= holdStart + extra) {
-      scrollYProgress.set(HOLD_START)
-      pageShift.set(-(px - holdStart))
-    } else {
-      scrollYProgress.set((px - extra) / base)
-      pageShift.set(-extra)
-    }
-  }, [rawProgress, scrollYProgress, pageShift, extra])
-  useMotionValueEvent(rawProgress, 'change', recompute)
-  useEffect(() => {
+  useLayoutEffect(() => {
     const wrapper = wrapperRef.current
     if (!wrapper) return
-    const measure = () => {
-      travel.current = Math.max(1, wrapper.offsetHeight - window.innerHeight)
-      recompute()
+    let top = 0
+    let travel = 1
+
+    const update = () => {
+      const px = Math.min(travel, Math.max(0, window.scrollY - top))
+      if (extra <= 0) {
+        scrollYProgress.set(px / travel)
+        pageShift.set(0)
+        return
+      }
+      const base = Math.max(1, travel - extra)
+      const holdStart = HOLD_START * base
+      if (px <= holdStart) {
+        scrollYProgress.set(px / base)
+        pageShift.set(0)
+      } else if (px <= holdStart + extra) {
+        scrollYProgress.set(HOLD_START)
+        pageShift.set(-(px - holdStart))
+      } else {
+        scrollYProgress.set((px - extra) / base)
+        pageShift.set(-extra)
+      }
     }
+    const measure = () => {
+      top = wrapper.getBoundingClientRect().top + window.scrollY
+      travel = Math.max(1, wrapper.offsetHeight - window.innerHeight)
+      update()
+    }
+
     measure()
+    window.addEventListener('scroll', update, { passive: true })
     window.addEventListener('resize', measure)
+    // The window's own size, and the page's: content loading in above it
+    // (images, fonts) moves it without the window itself resizing.
     const observer = new ResizeObserver(measure)
     observer.observe(wrapper)
+    observer.observe(document.body)
     return () => {
+      window.removeEventListener('scroll', update)
       window.removeEventListener('resize', measure)
       observer.disconnect()
     }
-  }, [recompute])
+  }, [extra, scrollYProgress, pageShift])
 
-  // The iframe used to only mount once the shell was already fully grown,
-  // because resizing it while mounted forced its embedded document to
-  // reflow on every scroll frame — up to three full copies of the site
-  // doing that at once is what made scrolling choppy in the first place.
-  // .imac-reveal-iframe is now sized in fixed viewport units rather than
-  // 100%/100% of the (animating) shell, so it never reflows regardless of
-  // when it mounts — which means this can now activate much earlier
-  // (v > 0.03 instead of 0.18) purely to buy the iframe more real load
-  // time before content-opacity needs it visible at 0.24. That embedded
-  // page is a full separate request — its own layout render, its own data
-  // fetches — so the extra ~0.2 of this window's 260vh runway is the
-  // difference between the section popping in fully loaded versus a
-  // visible blank-then-pop.
+  // The embedded page loads BEFORE its window is reached — as soon as the
+  // runway is within about a screen of the viewport — rather than part-way
+  // through the grow animation. Mounting an iframe (a full separate request,
+  // render and hydration) in the middle of the animation is a main-thread
+  // hitch you can feel as you scroll in, and a still-loading page shows as a
+  // blank screen when the window opens. Loaded early, the page is ready and
+  // (on touch screens) its height is known, so the runway is already its final
+  // length before you arrive.
   const [iframeActive, setIframeActive] = useState(false)
+  useEffect(() => {
+    const wrapper = wrapperRef.current
+    if (!wrapper) return
+    // Entries are queued oldest-first: the last one is where things stand now.
+    const observer = new IntersectionObserver((entries) => setIframeActive(entries[entries.length - 1].isIntersecting), {
+      rootMargin: '120% 0px',
+    })
+    observer.observe(wrapper)
+    return () => observer.disconnect()
+  }, [])
+
+  // Hide the site's own header and dock only while the window is mostly open
+  // (see .imac-window-active in globals.css) — not from the first pixel of
+  // growth, when they would blink out in front of a still-small iMac.
+  const [chromeHidden, setChromeHidden] = useState(false)
   useMotionValueEvent(scrollYProgress, 'change', (v) => {
-    const shouldBeActive = v > 0.03 && v < 0.89
-    setIframeActive((prev) => (prev === shouldBeActive ? prev : shouldBeActive))
+    const shouldHide = v > 0.1 && v < 0.8
+    setChromeHidden((prev) => (prev === shouldHide ? prev : shouldHide))
   })
 
   // Browsers don't reliably chain a wheel/touch gesture from an exhausted
@@ -333,7 +375,7 @@ function IMacScrollWindow({
         } as CSSProperties
       }
     >
-      {iframeActive && <div className="imac-window-active" hidden />}
+      {chromeHidden && <div className="imac-window-active" hidden />}
       <div className="imac-reveal-sticky">
         <motion.div className="imac-stand" style={{ opacity: standOpacity, top: standTop }}>
           <div className="imac-stand-neck" />

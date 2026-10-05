@@ -438,7 +438,18 @@
    that window, the same way the embedded pages simply don't have it. */
 body:has(.imac-window-active) header,
 body:has(.imac-window-active) nav {
-  display: none;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+/* Faded rather than display:none — the header is in the page flow (sticky),
+   so removing it shifted the whole page up by its height the instant a window
+   opened, and back down when it closed: the "jump" when scrolling in. */
+body:has(.imac-window-active) header,
+body:has(.imac-window-active) nav {
+  transition:
+    opacity 0.25s ease,
+    visibility 0s linear 0.25s;
 }
 
 /* iMac scroll windows — three in sequence (see imac-scroll-windows.tsx),
@@ -463,6 +474,9 @@ body:has(.imac-window-active) nav {
      nothing jumps when a window's rendering resumes. */
   content-visibility: auto;
   contain-intrinsic-size: auto 260vh;
+  /* The runway can change length once its page has loaded; never let the
+     browser nudge the scroll position to compensate. */
+  overflow-anchor: none;
 }
 
 .imac-reveal-sticky {
