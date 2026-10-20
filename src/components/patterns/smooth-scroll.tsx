@@ -9,6 +9,14 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 // function value can't cross the server/client boundary as a prop, only
 // as something already living inside a 'use client' module like this one.
 const lenisOptions = {
+  // Lenis normally measures the page's length once and keeps that number,
+  // refreshing it only when it thinks the page resized. This page grows after
+  // load — each iMac window lengthens its scroll runway once the section inside
+  // it has loaded — and Lenis was not told, so the mouse wheel stopped at the
+  // length the page had when it opened, up to a couple of thousand pixels
+  // short of the real bottom, while dragging the scrollbar (which the browser
+  // handles itself) still went on. This makes it read the real length each time.
+  naiveDimensions: true,
   duration: 1.2,
   easing: (t: number) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
 }
