@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { MemberAuthForm } from '@/components/members/login-form'
 import { GoogleSignInButton } from '@/components/staff/google-sign-in-button'
 import { isGoogleSignInConfigured } from '@/lib/google-oauth'
+import { BackToWebsite, OtherPortalLink } from '@/components/portal-login-links'
 
 export const metadata: Metadata = {
   title: 'Members Login | Centre for Apple Technologies',
@@ -29,6 +30,7 @@ export default async function MembersLoginPage({
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
+        <BackToWebsite />
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Members Portal</h1>
           <p className="mt-1 text-sm text-muted-foreground">
@@ -64,6 +66,8 @@ export default async function MembersLoginPage({
             Privacy Policy
           </Link>
         </p>
+
+        <OtherPortalLink portal="faculty" />
       </div>
     </div>
   )

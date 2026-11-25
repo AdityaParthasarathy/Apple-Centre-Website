@@ -66,6 +66,12 @@ export function SiteHeader({ searchIndex }: { searchIndex: SearchItem[] }) {
             >
               Members
             </Link>
+            <Link
+              href="/staff"
+              className="hidden text-sm font-medium text-foreground/70 transition hover:text-foreground md:block"
+            >
+              Faculty
+            </Link>
             <ApplyNowButton />
           </div>
         </Container>
