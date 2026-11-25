@@ -86,9 +86,17 @@ export function SiteFooter({ programs }: { programs: Program[] }) {
         {/* Bottom */}
         <div className="flex flex-col items-center gap-4 border-t border-background/10 pt-8 text-sm text-background/50 sm:flex-row sm:justify-between">
           <p>&copy; 2026 Centre for Apple Technologies, RIT. All rights reserved.</p>
-          <Link href="/privacy" className="transition hover:text-background">
-            Privacy Policy
-          </Link>
+          <nav aria-label="Portals and policies" className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
+            <Link href="/members" className="transition hover:text-background">
+              Members Portal
+            </Link>
+            <Link href="/staff" className="transition hover:text-background">
+              Faculty Portal
+            </Link>
+            <Link href="/privacy" className="transition hover:text-background">
+              Privacy Policy
+            </Link>
+          </nav>
         </div>
       </Container>
     </footer>

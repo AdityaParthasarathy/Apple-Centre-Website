@@ -57,6 +57,15 @@ export function SiteHeader({ searchIndex }: { searchIndex: SearchItem[] }) {
             <div className="hidden sm:block">
               <ExpandingSearch placeholder="Search programs, projects, events..." items={searchIndex} />
             </div>
+            {/* Where students sign in. Wide screens only: on a phone the
+                header has room for just the logo and Apply, and the footer
+                carries the same link. */}
+            <Link
+              href="/members"
+              className="hidden text-sm font-medium text-foreground/70 transition hover:text-foreground md:block"
+            >
+              Members
+            </Link>
             <ApplyNowButton />
           </div>
         </Container>
