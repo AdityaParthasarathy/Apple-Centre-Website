@@ -120,6 +120,18 @@ export interface SheetProject {
   iconKey?: 'bot' | 'sprout' | 'siren' | 'trophy'
   featured?: boolean
   link?: string
+  // Filled in only for projects added through the members portal.
+  githubLink?: string
+  memberName?: string
+  enrollment?: string
+  department?: string
+  /** "1" to "4". */
+  studyYear?: string
+  mentorName?: string
+  mentorDepartment?: string
+  mentorPosition?: string
+  mentorEmail?: string
+  mentorPhone?: string
   createdBy?: string
   createdAt?: string
 }

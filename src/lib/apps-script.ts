@@ -67,7 +67,7 @@ const MUTATION = /^(add|update|delete|register|logApplication)/
 // Photo folders exist only in the direct route: the Apps Script has no idea of
 // them. Without the direct connection they are simply unavailable (the public
 // gallery then shows every photo as before).
-const NEEDS_DIRECT = /Album|^updateGalleryImage$/
+const NEEDS_DIRECT = /Album|^updateGalleryImage$|MemberProject|^(get|register)Member$|^updateMemberEmail$/
 
 /**
  * Runs an action through the Sheets API. Null means "not available, use
@@ -206,6 +206,7 @@ const ADD_ACTIONS: Record<string, { list: string; key: string }> = {
   addAnnouncement: { list: 'listAnnouncements', key: 'announcement' },
   addGalleryImage: { list: 'listGallery', key: 'image' },
   addProject: { list: 'listProjects', key: 'project' },
+  addMemberProject: { list: 'listProjects', key: 'project' },
   addAchievement: { list: 'listAchievements', key: 'achievement' },
   addTeamMember: { list: 'listTeamMembers', key: 'member' },
   addProgram: { list: 'listPrograms', key: 'program' },
@@ -360,7 +361,7 @@ export async function callAppsScript<T extends Record<string, unknown> = Record<
   { fresh = false }: { fresh?: boolean } = {}
 ): Promise<T> {
   if (NEEDS_DIRECT.test(action) && !isDirectSheetsConfigured()) {
-    throw new Error('Photo folders need the direct Google Sheets connection, which is not set up.')
+    throw new Error('This needs the direct Google Sheets connection, which is not set up.')
   }
 
   // Only read-only `list*` actions are cached/shared. Writes are never

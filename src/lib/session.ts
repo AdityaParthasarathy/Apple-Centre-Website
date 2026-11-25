@@ -11,7 +11,7 @@ export interface FacultySession {
   name: string
 }
 
-function getSecretKey() {
+export function getSecretKey() {
   const secret = process.env.SESSION_SECRET
   if (!secret) {
     throw new Error('SESSION_SECRET is not configured.')
@@ -31,6 +31,9 @@ export async function signSessionToken(session: FacultySession): Promise<string>
 export async function verifySessionToken(token: string): Promise<FacultySession | null> {
   try {
     const { payload } = await jwtVerify(token, getSecretKey())
+    // Tokens made for other purposes (the members portal's) carry a `kind` and
+    // must never be accepted as a faculty session.
+    if (payload.kind !== undefined) return null
     if (typeof payload.email !== 'string' || typeof payload.name !== 'string') return null
     return { email: payload.email, name: payload.name }
   } catch {

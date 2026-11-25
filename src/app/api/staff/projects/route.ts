@@ -3,6 +3,7 @@ import { getFacultySession } from '@/lib/session'
 import { callAppsScript } from '@/lib/apps-script'
 import type { SheetProject } from '@/lib/sheet-types'
 import { failureResponse } from '@/lib/api-errors'
+import { isHttpUrl } from '@/lib/input-checks'
 
 // Google Apps Script takes 3-45s to answer (see lib/apps-script.ts), and
 // Vercel cuts a function off at its plan default (often 10s) unless the route
@@ -30,6 +31,9 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => null)
   if (!body?.title || !body?.description || !body?.image) {
     return NextResponse.json({ error: 'Title, description, and a photo are required.' }, { status: 400 })
+  }
+  if (typeof body.link !== 'string' || !isHttpUrl(body.link.trim())) {
+    return NextResponse.json({ error: 'A project link is required (a web address starting with http:// or https://).' }, { status: 400 })
   }
 
   try {

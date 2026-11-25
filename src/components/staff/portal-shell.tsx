@@ -10,30 +10,41 @@ import { AvatarPlaceholder } from '@/components/ui/avatar-placeholder'
 import { cn } from '@/lib/utils'
 import { usePendingApplications } from '@/hooks/use-pending-applications'
 
-function Brand({ onNavigate }: { onNavigate?: () => void }) {
+interface FrameProps {
+  /** Shown next to the logo. */
+  title: string
+  /** Where the logo goes. */
+  homeHref: string
+  name: string
+  /** The navigation; `onNavigate` closes the mobile drawer when a link is chosen. */
+  renderNav: (onNavigate?: () => void) => React.ReactNode
+  logout: React.ReactNode
+  /** A dot on the mobile menu button: "something is waiting inside". */
+  menuDot?: boolean
+}
+
+function Brand({ title, homeHref, onNavigate }: Pick<FrameProps, 'title' | 'homeHref'> & { onNavigate?: () => void }) {
   return (
     <Link
-      href="/staff"
+      href={homeHref}
       onClick={onNavigate}
       className="flex items-center gap-2.5 text-lg font-semibold text-foreground transition-opacity hover:opacity-80"
     >
       <Image src="/rit-icon.png" alt="" width={28} height={28} className="rounded-md" />
-      <span>Faculty Portal</span>
+      <span>{title}</span>
     </Link>
   )
 }
 
 // Everything inside the panel — shared by the fixed desktop sidebar and the
 // mobile drawer so the two can never drift apart.
-function PanelBody({ name, onNavigate }: { name: string; onNavigate?: () => void }) {
+function PanelBody({ frame, onNavigate }: { frame: FrameProps; onNavigate?: () => void }) {
   return (
     <div className="flex h-full flex-col">
       <div className="hidden px-5 pb-4 pt-6 md:block">
-        <Brand />
+        <Brand title={frame.title} homeHref={frame.homeHref} />
       </div>
-      <div className="flex-1 overflow-y-auto px-3 py-2 md:pt-0">
-        <PortalNav onNavigate={onNavigate} />
-      </div>
+      <div className="flex-1 overflow-y-auto px-3 py-2 md:pt-0">{frame.renderNav(onNavigate)}</div>
       <div className="space-y-3 border-t border-border p-4">
         <Link
           href="/"
@@ -45,22 +56,22 @@ function PanelBody({ name, onNavigate }: { name: string; onNavigate?: () => void
           View public site
         </Link>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <AvatarPlaceholder name={name} colored className="h-7 w-7 shrink-0 rounded-full text-xs" />
-          <span className="truncate">{name}</span>
+          <AvatarPlaceholder name={frame.name} colored className="h-7 w-7 shrink-0 rounded-full text-xs" />
+          <span className="truncate">{frame.name}</span>
         </div>
-        <LogoutButton />
+        {frame.logout}
       </div>
     </div>
   )
 }
 
-/** The authenticated portal's frame: a fixed side panel on wide screens, and
- *  on small screens a slim top bar whose menu button slides the same panel in
- *  as a drawer. Presentation only — session gating stays in the layout. */
-export function PortalShell({ name, children }: { name: string; children: React.ReactNode }) {
+/** A portal's frame: a fixed side panel on wide screens, and on small screens a
+ *  slim top bar whose menu button slides the same panel in as a drawer. Shared
+ *  by the faculty portal and the members portal. Presentation only — session
+ *  gating stays in the layouts. */
+export function PortalFrame({ children, ...frame }: FrameProps & { children: React.ReactNode }) {
   const [open, setOpen] = useState(false)
   const close = () => setOpen(false)
-  const pending = usePendingApplications()
 
   // While the drawer is open: Escape closes it, and the page behind it
   // stops scrolling.
@@ -85,7 +96,7 @@ export function PortalShell({ name, children }: { name: string; children: React.
         aria-label="Portal sidebar"
         className="sticky top-0 hidden h-screen w-64 shrink-0 border-r border-border bg-background md:block"
       >
-        <PanelBody name={name} />
+        <PanelBody frame={frame} />
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
@@ -101,11 +112,11 @@ export function PortalShell({ name, children }: { name: string; children: React.
           >
             <Menu className="h-5 w-5" aria-hidden="true" />
             {/* The menu hides the Applications marker, so a dot on the button says "something is waiting". */}
-            {pending ? (
+            {frame.menuDot ? (
               <span aria-hidden="true" className="absolute right-2 top-2 size-2.5 rounded-full bg-red-600 ring-2 ring-background" />
             ) : null}
           </button>
-          <Brand />
+          <Brand title={frame.title} homeHref={frame.homeHref} />
         </header>
 
         <main id="main-content" className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
@@ -136,7 +147,7 @@ export function PortalShell({ name, children }: { name: string; children: React.
           )}
         >
           <div className="flex h-14 shrink-0 items-center justify-between border-b border-border pl-4 pr-2">
-            <Brand onNavigate={close} />
+            <Brand title={frame.title} homeHref={frame.homeHref} onNavigate={close} />
             <button
               type="button"
               onClick={close}
@@ -147,10 +158,27 @@ export function PortalShell({ name, children }: { name: string; children: React.
             </button>
           </div>
           <div className="min-h-0 flex-1">
-            <PanelBody name={name} onNavigate={close} />
+            <PanelBody frame={frame} onNavigate={close} />
           </div>
         </aside>
       </div>
     </div>
+  )
+}
+
+/** The faculty portal's frame. */
+export function PortalShell({ name, children }: { name: string; children: React.ReactNode }) {
+  const pending = usePendingApplications()
+  return (
+    <PortalFrame
+      title="Faculty Portal"
+      homeHref="/staff"
+      name={name}
+      renderNav={(onNavigate) => <PortalNav onNavigate={onNavigate} />}
+      logout={<LogoutButton />}
+      menuDot={!!pending}
+    >
+      {children}
+    </PortalFrame>
   )
 }

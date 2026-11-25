@@ -17,11 +17,14 @@ export function ImageUploadField({
   required = false,
   value,
   onChange,
+  endpoint = '/api/staff/upload',
 }: {
   label?: string
   required?: boolean
   value: string
   onChange: (url: string) => void
+  /** Where the picture is sent; the members portal has its own. */
+  endpoint?: string
 }) {
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -36,7 +39,7 @@ export function ImageUploadField({
     try {
       const { base64, mimeType } = await compressImage(file)
       const send = () =>
-        fetch('/api/staff/upload', {
+        fetch(endpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ base64, mimeType, filename: file.name }),

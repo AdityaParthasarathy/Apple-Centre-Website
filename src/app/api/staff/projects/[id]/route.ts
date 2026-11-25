@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { getFacultySession } from '@/lib/session'
 import { callAppsScript } from '@/lib/apps-script'
 import { failureResponse } from '@/lib/api-errors'
+import { isHttpUrl } from '@/lib/input-checks'
 
 // Google Apps Script takes 3-45s to answer (see lib/apps-script.ts), and
 // Vercel cuts a function off at its plan default (often 10s) unless the route
@@ -19,6 +20,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   // Every item needs a photo, so an edit can change it but not remove it.
   if ('image' in body && !body.image) {
     return NextResponse.json({ error: 'A photo is required.' }, { status: 400 })
+  }
+  // Every project needs a link too, so an edit can change it but not blank it.
+  if ('link' in body && (typeof body.link !== 'string' || !isHttpUrl(body.link.trim()))) {
+    return NextResponse.json({ error: 'A project link is required (a web address starting with http:// or https://).' }, { status: 400 })
   }
 
   try {

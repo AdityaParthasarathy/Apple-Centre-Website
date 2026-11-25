@@ -123,6 +123,9 @@ interface Tab {
 const AUTO_TABS: Record<string, string[]> = {
   Registrations: ['id', 'eventId', 'eventTitle', 'eventDate', 'name', 'email', 'phone', 'college', 'year', 'registeredAt'],
   Albums: ['id', 'name', 'slug', 'description', 'cover', 'createdBy', 'createdAt'],
+  // Members-portal accounts: `id` is the enrollment number. To reset a member's
+  // password, delete their row — they choose a new one at their next sign-in.
+  Members: ['id', 'name', 'department', 'passwordHash', 'createdAt', 'username', 'email'],
 }
 
 /** `create`: make the tab if it is missing (writes always do; a plain read of
@@ -340,6 +343,21 @@ interface Entity {
 const now = () => new Date().toISOString()
 const by = (body: Obj) => body.createdBy || ''
 
+// What the members portal records about a project beyond what staff do: who
+// submitted it and who mentored it.
+const MEMBER_PROJECT_COLUMNS = [
+  'githubLink',
+  'memberName',
+  'enrollment',
+  'department',
+  'studyYear',
+  'mentorName',
+  'mentorDepartment',
+  'mentorPosition',
+  'mentorEmail',
+  'mentorPhone',
+]
+
 const ENTITIES: Record<string, Entity> = {
   Event: {
     tab: 'Events',
@@ -456,6 +474,11 @@ const ENTITIES: Record<string, Entity> = {
     tab: 'Projects',
     key: 'project',
     notFound: 'Project not found.',
+    // Only projects added through the members portal fill these in. They are
+    // read back for the portals but are not part of what the public site shows
+    // (merge-projects.ts picks its fields one by one), so a mentor's email and
+    // phone never reach a visitor.
+    extraColumns: MEMBER_PROJECT_COLUMNS,
     read: (row, zone) => ({
       id: row.id,
       title: row.title,
@@ -466,6 +489,7 @@ const ENTITIES: Record<string, Entity> = {
       iconKey: row.iconKey || '',
       featured: toBool(row.featured),
       link: row.link || '',
+      ...Object.fromEntries(MEMBER_PROJECT_COLUMNS.map((c) => [c, String(row[c] ?? '')])),
       createdBy: row.createdBy,
       createdAt: isoString(row.createdAt, zone),
     }),
@@ -479,6 +503,7 @@ const ENTITIES: Record<string, Entity> = {
       iconKey: body.iconKey || '',
       featured: !!body.featured,
       link: body.link || '',
+      ...Object.fromEntries(MEMBER_PROJECT_COLUMNS.map((c) => [c, body[c] || ''])),
       createdBy: by(body),
       createdAt: now(),
     }),
@@ -659,6 +684,69 @@ function registrationRow(row: Obj, zone: string) {
   }
 }
 
+// Columns the Members tab may not have yet (it was first made without them).
+const MEMBER_EXTRA_COLUMNS = ['username', 'email']
+
+function memberShape(row: Obj) {
+  return {
+    enrollment: String(row.id ?? '').trim(),
+    name: String(row.name ?? ''),
+    department: String(row.department ?? ''),
+    username: String(row.username ?? '').trim(),
+    email: String(row.email ?? '').trim().toLowerCase(),
+    passwordHash: String(row.passwordHash ?? ''),
+  }
+}
+
+const lower = (v: unknown) => String(v ?? '').trim().toLowerCase()
+const sameEnrollment = (cell: unknown, wanted: string) => String(cell ?? '').trim().toUpperCase() === wanted
+
+/** Whether this account answers to the username. An account made before
+ *  usernames existed (no username, but a password) is entered by its enrollment
+ *  number, so nobody is locked out by the change. A Google-only account has no
+ *  password and no username, so it can never be entered this way. */
+function usernameMatches(row: Obj, wanted: string) {
+  const username = lower(row.username)
+  if (username) return username === wanted
+  return !!String(row.passwordHash ?? '').trim() && lower(row.id) === wanted
+}
+
+/** Creates the member's account unless something clashes — the enrollment
+ *  number, the username or the Google email is already used. Either way the
+ *  answer says which, so a repeat (or two people racing for one number) can never
+ *  replace someone's account or password. */
+async function registerMember(body: Obj) {
+  const enrollment = String(body.enrollment ?? '').trim().toUpperCase()
+  const username = lower(body.username)
+  const email = lower(body.email)
+  return inQueue('Members', async () => {
+    const tab = await readTab('Members', true)
+    await ensureColumns(tab, MEMBER_EXTRA_COLUMNS)
+    const rows = liveRows(tab)
+
+    const sameNumber = rows.find((r) => sameEnrollment(r.obj.id, enrollment))
+    if (sameNumber) return ok({ created: false, conflict: 'enrollment', member: memberShape(sameNumber.obj) })
+    if (username && rows.some((r) => usernameMatches(r.obj, username))) return ok({ created: false, conflict: 'username' })
+    const sameEmail = email ? rows.find((r) => lower(r.obj.email) === email) : undefined
+    if (sameEmail) return ok({ created: false, conflict: 'email', member: memberShape(sameEmail.obj) })
+
+    const row = {
+      id: enrollment,
+      name: body.name,
+      department: body.department,
+      passwordHash: body.passwordHash || '',
+      createdAt: now(),
+      username,
+      email,
+    }
+    await api(valuesPath(quote('Members'), ':append') + `?${RAW}&insertDataOption=INSERT_ROWS`, {
+      method: 'POST',
+      body: { values: [tab.headers.map((h) => (h in row ? cellValue((row as Obj)[h]) : ''))] },
+    })
+    return ok({ created: true, member: memberShape(row) })
+  })
+}
+
 async function registerForEvent(body: Obj) {
   const email = String(body.email ?? '').trim().toLowerCase()
   const capacity = Number(body.capacity) || 0
@@ -772,7 +860,7 @@ async function dispatch(action: string, body: Obj): Promise<Obj> {
   if (action === 'deleteAlbum') return deleteAlbum(body.id)
 
   // ---- generic: list / add / update / delete for each content tab ----
-  const generic = /^(list|add|update|delete)(Events?|Announcements?|GalleryImage|Gallery|Albums?|Projects?|Achievements?|TeamMembers?|Programs?|Facilit(?:ies|y))$/.exec(action)
+  const generic = /^(list|add|update|delete)(Events?|Announcements?|GalleryImage|Gallery|Albums?|MemberProjects?|Projects?|Achievements?|TeamMembers?|Programs?|Facilit(?:ies|y))$/.exec(action)
   if (generic) {
     const [, verb, noun] = generic
     const entity = ENTITIES[SINGULAR[noun] ?? noun]
@@ -828,6 +916,31 @@ async function dispatch(action: string, body: Obj): Promise<Obj> {
       return ok({ faculty: { email: match.obj.email, passwordHash: match.obj.password_hash, name: match.obj.name } })
     }
 
+    // Finds one account by whichever of enrollment / username / email is given.
+    case 'getMember': {
+      const rows = liveRows(await readTab('Members'))
+      const wanted = {
+        enrollment: String(body.enrollment ?? '').trim().toUpperCase(),
+        username: lower(body.username),
+        email: lower(body.email),
+      }
+      const match = wanted.enrollment
+        ? rows.find((r) => sameEnrollment(r.obj.id, wanted.enrollment))
+        : wanted.username
+          ? rows.find((r) => usernameMatches(r.obj, wanted.username))
+          : wanted.email
+            ? rows.find((r) => lower(r.obj.email) === wanted.email)
+            : undefined
+      return ok({ member: match ? memberShape(match.obj) : null })
+    }
+    case 'registerMember':
+      return registerMember(body)
+    // Connects a Google account to an existing member account.
+    case 'updateMemberEmail':
+      return (await updateRowById('Members', String(body.enrollment ?? '').trim().toUpperCase(), { email: lower(body.email) }, MEMBER_EXTRA_COLUMNS))
+        ? ok()
+        : fail('Account not found.')
+
     case 'registerForEvent':
       return registerForEvent(body)
     case 'listRegistrations': {
@@ -856,6 +969,10 @@ const SINGULAR: Record<string, string> = {
   Gallery: 'GalleryImage',
   Albums: 'Album',
   Projects: 'Project',
+  // The same Projects tab; the separate names exist so these writes can refuse
+  // to run through the old Apps Script, which would drop the member columns.
+  MemberProjects: 'Project',
+  MemberProject: 'Project',
   Achievements: 'Achievement',
   TeamMembers: 'TeamMember',
   Programs: 'Program',

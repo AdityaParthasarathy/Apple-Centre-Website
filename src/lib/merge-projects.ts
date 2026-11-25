@@ -19,6 +19,7 @@ function sheetProjectToProject(p: SheetProject): Project {
     iconKey: p.iconKey || undefined,
     featured: p.featured,
     link: p.link || undefined,
+    githubLink: p.githubLink || undefined,
   }
 }
 

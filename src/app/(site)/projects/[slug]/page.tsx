@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Image from 'next/image'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { ArrowLeft, ExternalLink, Users } from 'lucide-react'
+import { ArrowLeft, Code, ExternalLink, Users } from 'lucide-react'
 import { Container } from '@/components/ui/container'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button'
@@ -73,19 +73,37 @@ export default async function ProjectDetailPage({
                 {project.title}
               </h1>
             </div>
-            {project.link && (
-              <MotionAnchor
-                href={project.link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={buttonVariants({ variant: 'outline', className: 'gap-2' })}
-                whileHover={{ scale: 1.04 }}
-                whileTap={{ scale: 0.97 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-              >
-                View Project
-                <ExternalLink className="h-4 w-4" />
-              </MotionAnchor>
+            {(project.link || project.githubLink) && (
+              <div className="flex flex-wrap gap-3">
+                {project.link && (
+                  <MotionAnchor
+                    href={project.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={buttonVariants({ variant: 'outline', className: 'gap-2' })}
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                  >
+                    View Project
+                    <ExternalLink className="h-4 w-4" />
+                  </MotionAnchor>
+                )}
+                {project.githubLink && (
+                  <MotionAnchor
+                    href={project.githubLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={buttonVariants({ variant: 'outline', className: 'gap-2' })}
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                  >
+                    View on GitHub
+                    <Code className="h-4 w-4" />
+                  </MotionAnchor>
+                )}
+              </div>
             )}
           </div>
         </Container>

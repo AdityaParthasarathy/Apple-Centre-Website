@@ -173,10 +173,12 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
             <ImageUploadField required value={form.image} onChange={(url) => setForm({ ...form, image: url })} />
             <div>
               <label htmlFor="projectLink" className="mb-1.5 block text-sm font-medium text-foreground">
-                Link (optional)
+                Link
               </label>
               <input
                 id="projectLink"
+                type="url"
+                required
                 placeholder="https://…"
                 value={form.link}
                 onChange={(e) => setForm({ ...form, link: e.target.value })}
@@ -217,6 +219,22 @@ export function ProjectsManager({ initialProjects }: { initialProjects: SheetPro
                 {project.featured && <Badge variant="accent" className="text-xs">Featured</Badge>}
               </div>
               <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{project.description}</p>
+              {/* Only projects added through the members portal carry these. */}
+              {project.enrollment && (
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Added by {project.memberName} ({project.enrollment}) · {project.department}
+                  {project.studyYear ? ` · Year ${project.studyYear}` : ''}
+                </p>
+              )}
+              {project.githubLink && (
+                <p className="mt-0.5 break-all text-xs text-muted-foreground">GitHub: {project.githubLink}</p>
+              )}
+              {project.mentorName && (
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Mentor: {project.mentorName}, {project.mentorPosition} ({project.mentorDepartment}) ·{' '}
+                  {project.mentorEmail} · {project.mentorPhone}
+                </p>
+              )}
             </div>
             <div className="flex shrink-0 gap-2">
               <MotionButton

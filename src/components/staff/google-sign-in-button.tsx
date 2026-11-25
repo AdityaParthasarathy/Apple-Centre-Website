@@ -3,10 +3,10 @@ import { cn } from '@/lib/utils'
 
 /** A plain link, not a fetch: Google sign-in is a full-page redirect to Google
  *  and back, so there is nothing for client code to do. */
-export function GoogleSignInButton() {
+export function GoogleSignInButton({ href = '/api/staff/google/start' }: { href?: string }) {
   return (
     <a
-      href="/api/staff/google/start"
+      href={href}
       className={cn(buttonVariants({ variant: 'outline' }), 'h-11 w-full gap-3 text-sm font-medium')}
     >
       <svg viewBox="0 0 48 48" className="h-5 w-5" aria-hidden="true">

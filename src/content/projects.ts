@@ -9,6 +9,8 @@ export interface Project {
   iconKey?: 'bot' | 'sprout' | 'siren' | 'trophy'
   featured?: boolean
   link?: string
+  /** The project's GitHub repository (required for projects added by members). */
+  githubLink?: string
 }
 
 // Formerly hardcoded here — migrated into the Projects sheet (same ids:
