@@ -10,6 +10,8 @@ import { ConfirmDialog } from '@/components/staff/confirm-dialog'
 import { usePersistentState } from '@/hooks/use-persistent-state'
 import { tempId, useLatest, useOptimisticList } from '@/hooks/use-optimistic-list'
 import { TagInput, parseTags, tagsToText } from '@/components/ui/tag-input'
+import { Select, SelectTrigger, SelectValue, SelectPopup, SelectItem } from '@/components/ui/select'
+import { SuggestInput } from '@/components/ui/suggest-input'
 import { inputClass } from '@/lib/utils'
 import { DEPARTMENTS } from '@/lib/departments'
 import type { SheetProject } from '@/lib/sheet-types'
@@ -110,6 +112,12 @@ export function MemberProjectsManager({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    // The year is picked from a custom list, which the browser can't check as "required".
+    if (!form.studyYear) {
+      setError('Choose your year of study.')
+      document.getElementById('projectStudyYear')?.focus()
+      return
+    }
     const payload = { ...form }
     const snapshot = form
     const editing = editingId
@@ -296,35 +304,35 @@ export function MemberProjectsManager({
                 <label htmlFor="projectDepartment" className={labelClass}>
                   Department
                 </label>
-                <input
+                <SuggestInput
                   id="projectDepartment"
                   required
                   maxLength={80}
-                  list="projectDepartmentOptions"
-                  autoComplete="off"
+                  options={DEPARTMENTS}
                   value={form.department}
-                  onChange={(e) => setForm({ ...form, department: e.target.value })}
-                  className={inputClass}
+                  onValueChange={(department) => setForm({ ...form, department })}
                 />
               </div>
               <div>
                 <label htmlFor="projectStudyYear" className={labelClass}>
                   Year of study
                 </label>
-                <select
-                  id="projectStudyYear"
-                  required
-                  value={form.studyYear}
-                  onChange={(e) => setForm({ ...form, studyYear: e.target.value })}
-                  className={inputClass}
+                <Select
+                  items={YEARS}
+                  value={form.studyYear || null}
+                  onValueChange={(value) => setForm({ ...form, studyYear: value ?? '' })}
                 >
-                  <option value="">Select year</option>
-                  {YEARS.map((year) => (
-                    <option key={year.value} value={year.value}>
-                      {year.label}
-                    </option>
-                  ))}
-                </select>
+                  <SelectTrigger id="projectStudyYear" aria-required="true">
+                    <SelectValue placeholder="Select year" />
+                  </SelectTrigger>
+                  <SelectPopup>
+                    {YEARS.map((year) => (
+                      <SelectItem key={year.value} value={year.value}>
+                        {year.label}
+                      </SelectItem>
+                    ))}
+                  </SelectPopup>
+                </Select>
               </div>
             </div>
           </fieldset>
@@ -354,15 +362,13 @@ export function MemberProjectsManager({
                 <label htmlFor="projectMentorDepartment" className={labelClass}>
                   Mentor&apos;s department
                 </label>
-                <input
+                <SuggestInput
                   id="projectMentorDepartment"
                   required
                   maxLength={80}
-                  list="projectDepartmentOptions"
-                  autoComplete="off"
+                  options={DEPARTMENTS}
                   value={form.mentorDepartment}
-                  onChange={(e) => setForm({ ...form, mentorDepartment: e.target.value })}
-                  className={inputClass}
+                  onValueChange={(mentorDepartment) => setForm({ ...form, mentorDepartment })}
                 />
               </div>
               <div>
@@ -414,12 +420,6 @@ export function MemberProjectsManager({
               </div>
             </div>
           </fieldset>
-
-          <datalist id="projectDepartmentOptions">
-            {DEPARTMENTS.map((option) => (
-              <option key={option} value={option} />
-            ))}
-          </datalist>
 
           {error && (
             <p className="text-sm text-destructive" role="alert">

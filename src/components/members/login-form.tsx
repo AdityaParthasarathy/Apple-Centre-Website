@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { StatefulButton } from '@/components/ui/stateful-button'
 import { PasswordInput } from '@/components/ui/password-input'
+import { SuggestInput } from '@/components/ui/suggest-input'
 import { cn, inputClass } from '@/lib/utils'
 import { DEPARTMENTS } from '@/lib/departments'
 
@@ -152,22 +153,15 @@ export function MemberAuthForm() {
             <label htmlFor="memberDepartment" className={labelClass}>
               Department
             </label>
-            <input
+            <SuggestInput
               id="memberDepartment"
               name="department"
               required
-              list="memberDepartmentOptions"
-              autoComplete="off"
               maxLength={80}
+              options={DEPARTMENTS}
               value={department}
-              onChange={(e) => setDepartment(e.target.value)}
-              className={inputClass}
+              onValueChange={setDepartment}
             />
-            <datalist id="memberDepartmentOptions">
-              {DEPARTMENTS.map((option) => (
-                <option key={option} value={option} />
-              ))}
-            </datalist>
           </div>
         </>
       )}

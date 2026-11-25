@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { MotionButton } from '@/components/patterns/motion-link'
 import { ImageUploadField } from '@/components/staff/image-upload-field'
 import { ConfirmDialog } from '@/components/staff/confirm-dialog'
+import { SuggestInput } from '@/components/ui/suggest-input'
 import { usePersistentState } from '@/hooks/use-persistent-state'
 import { tempId, useLatest, useOptimisticList } from '@/hooks/use-optimistic-list'
 import { inputClass, isExternalImage, cardImage } from '@/lib/utils'
@@ -134,20 +135,14 @@ export function AchievementsManager({ initialAchievements }: { initialAchievemen
               <label htmlFor="achievementPlacement" className="mb-1.5 block text-sm font-medium text-foreground">
                 Placement / award
               </label>
-              <input
+              <SuggestInput
                 id="achievementPlacement"
                 required
-                list="achievementPlacementOptions"
                 placeholder="1st Prize"
+                options={PLACEMENT_SUGGESTIONS}
                 value={form.placement}
-                onChange={(e) => setForm({ ...form, placement: e.target.value })}
-                className={inputClass}
+                onValueChange={(placement) => setForm({ ...form, placement })}
               />
-              <datalist id="achievementPlacementOptions">
-                {PLACEMENT_SUGGESTIONS.map((option) => (
-                  <option key={option} value={option} />
-                ))}
-              </datalist>
             </div>
           </div>
           <div>

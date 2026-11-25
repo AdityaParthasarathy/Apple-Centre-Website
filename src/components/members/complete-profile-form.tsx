@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { StatefulButton } from '@/components/ui/stateful-button'
 import { PasswordInput } from '@/components/ui/password-input'
+import { SuggestInput } from '@/components/ui/suggest-input'
 import { inputClass } from '@/lib/utils'
 import { DEPARTMENTS } from '@/lib/departments'
 
@@ -84,21 +85,14 @@ export function CompleteProfileForm({ googleName }: { googleName: string }) {
         <label htmlFor="googleDepartment" className={labelClass}>
           Department
         </label>
-        <input
+        <SuggestInput
           id="googleDepartment"
           required
-          list="googleDepartmentOptions"
           maxLength={80}
-          autoComplete="off"
+          options={DEPARTMENTS}
           value={department}
-          onChange={(e) => setDepartment(e.target.value)}
-          className={inputClass}
+          onValueChange={setDepartment}
         />
-        <datalist id="googleDepartmentOptions">
-          {DEPARTMENTS.map((option) => (
-            <option key={option} value={option} />
-          ))}
-        </datalist>
       </div>
 
       {needsPassword && (

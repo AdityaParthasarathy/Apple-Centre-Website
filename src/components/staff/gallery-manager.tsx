@@ -19,6 +19,13 @@ import type { SheetAlbum, SheetGalleryImage } from '@/lib/sheet-types'
 
 const CATEGORIES: PhotoCategory[] = ['workshop', 'event', 'facility', 'community']
 
+// The folder dropdown's "no folder" choice. A dropdown can't hold an empty value.
+const NO_FOLDER = 'none'
+const folderChoices = (albums: SheetAlbum[]) => [
+  { value: NO_FOLDER, label: 'No folder' },
+  ...albums.map((a) => ({ value: a.id, label: a.name })),
+]
+
 const EMPTY_FORM = { title: '', description: '', category: 'event' as PhotoCategory, album: '' }
 type FormState = typeof EMPTY_FORM
 
@@ -463,20 +470,21 @@ export function GalleryManager({
                   className="hidden"
                   aria-label="Choose photos to add to this folder"
                 />
-                <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                  Tag them as
-                  <select
-                    value={addCategory}
-                    onChange={(e) => setAddCategory(e.target.value as PhotoCategory)}
-                    className="rounded-lg border border-border bg-input px-2.5 py-1.5 text-sm capitalize text-foreground"
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <span id="addCategoryLabel">Tag them as</span>
+                  <Select value={addCategory} onValueChange={(value) => value && setAddCategory(value as PhotoCategory)}>
+                    <SelectTrigger aria-labelledby="addCategoryLabel" className="w-auto min-w-36 py-1.5 capitalize">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectPopup>
+                      {CATEGORIES.map((c) => (
+                        <SelectItem key={c} value={c} className="capitalize">
+                          {c}
+                        </SelectItem>
+                      ))}
+                    </SelectPopup>
+                  </Select>
+                </div>
                 {adding && <span className="text-sm text-muted-foreground">Getting photos ready…</span>}
               </div>
 
@@ -556,19 +564,22 @@ export function GalleryManager({
                     <label htmlFor="galleryFolder" className="mb-1.5 block text-sm font-medium text-foreground">
                       Folder
                     </label>
-                    <select
-                      id="galleryFolder"
-                      value={form.album}
-                      onChange={(e) => setForm({ ...form, album: e.target.value })}
-                      className={inputClass}
+                    <Select
+                      items={folderChoices(albums)}
+                      value={form.album || NO_FOLDER}
+                      onValueChange={(value) => setForm({ ...form, album: !value || value === NO_FOLDER ? '' : value })}
                     >
-                      <option value="">No folder</option>
-                      {albums.map((a) => (
-                        <option key={a.id} value={a.id}>
-                          {a.name}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger id="galleryFolder">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectPopup>
+                        {folderChoices(albums).map((choice) => (
+                          <SelectItem key={choice.value} value={choice.value}>
+                            {choice.label}
+                          </SelectItem>
+                        ))}
+                      </SelectPopup>
+                    </Select>
                   </div>
                 )}
               </div>
@@ -730,22 +741,26 @@ function PhotoTile({
         <p className="line-clamp-1 text-xs font-semibold text-white">{image.title}</p>
         <div className="mt-1 flex items-center gap-1.5">
           {albums.length > 0 && (
-            <select
-              aria-label={`Move "${image.title}" to a folder`}
-              value={folder ? folder.id : ''}
+            <Select
+              items={folderChoices(albums)}
+              value={folder ? folder.id : NO_FOLDER}
               disabled={saving}
-              onChange={(e) => onMove(e.target.value)}
-              className="min-w-0 flex-1 rounded border border-white/30 bg-black/50 px-1.5 py-1 text-xs text-white"
+              onValueChange={(value) => onMove(!value || value === NO_FOLDER ? '' : value)}
             >
-              <option value="" className="text-black">
-                No folder
-              </option>
-              {albums.map((a) => (
-                <option key={a.id} value={a.id} className="text-black">
-                  {a.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger
+                aria-label={`Move "${image.title}" to a folder`}
+                className="min-w-0 flex-1 rounded border-white/30 bg-black/50 px-1.5 py-1 text-xs text-white"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectPopup>
+                {folderChoices(albums).map((choice) => (
+                  <SelectItem key={choice.value} value={choice.value}>
+                    {choice.label}
+                  </SelectItem>
+                ))}
+              </SelectPopup>
+            </Select>
           )}
           {onMakeCover && !isCover && (
             <MotionButton
