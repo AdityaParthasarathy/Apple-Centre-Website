@@ -4,9 +4,12 @@ import { callAppsScript } from '@/lib/apps-script'
 import { setMemberSessionCookie } from '@/lib/member-session'
 import { parseFields } from '@/lib/input-checks'
 import { addressOf, mayCreateAccount, noteAccountCreated } from '@/lib/member-throttle'
-import { MIN_PASSWORD, type MemberRecord } from '@/lib/member-api'
+import { BUSY_MESSAGE, MIN_PASSWORD, isBusy, type MemberRecord } from '@/lib/member-api'
 
 // Creating an account: name, username, enrollment number, department, password.
+// Sign-in may wait several seconds for Google's per-minute read limit to clear (see withRetries in google-sheets.ts).
+export const maxDuration = 60
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null)
   const parsed = parseFields(body, {
@@ -53,6 +56,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, name })
   } catch (error) {
     console.error('Member sign-up failed:', error)
+    if (isBusy(error)) return NextResponse.json({ error: BUSY_MESSAGE }, { status: 503 })
     return NextResponse.json({ error: "Couldn't create your account right now. Please try again." }, { status: 502 })
   }
 }

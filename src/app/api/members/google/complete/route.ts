@@ -4,7 +4,7 @@ import { callAppsScript } from '@/lib/apps-script'
 import { clearPendingGoogleCookie, getPendingGoogleMember, setMemberSessionCookie } from '@/lib/member-session'
 import { parseFields } from '@/lib/input-checks'
 import { addressOf, clearWrong, lockedOut, mayCreateAccount, noteAccountCreated, noteWrong } from '@/lib/member-throttle'
-import type { MemberRecord } from '@/lib/member-api'
+import { BUSY_MESSAGE, isBusy, type MemberRecord } from '@/lib/member-api'
 
 // The last step of the first "Continue with Google": Google has proven the email
 // (it is in the short-lived cookie); the member says their enrollment number and
@@ -14,6 +14,9 @@ import type { MemberRecord } from '@/lib/member-api'
 // password), the person can connect their Google account to it by entering that
 // account's password — otherwise anyone could take over a number by signing in
 // with Google.
+// Sign-in may wait several seconds for Google's per-minute read limit to clear (see withRetries in google-sheets.ts).
+export const maxDuration = 60
+
 export async function POST(request: Request) {
   const pending = await getPendingGoogleMember()
   if (!pending) {
@@ -84,6 +87,7 @@ export async function POST(request: Request) {
     return signedIn(existing)
   } catch (error) {
     console.error('Finishing member Google sign-in failed:', error)
+    if (isBusy(error)) return NextResponse.json({ error: BUSY_MESSAGE }, { status: 503 })
     return NextResponse.json({ error: "Couldn't finish setting up your account. Please try again." }, { status: 502 })
   }
 }

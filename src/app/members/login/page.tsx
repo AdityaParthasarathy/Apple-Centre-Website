@@ -13,6 +13,7 @@ const GOOGLE_ERRORS: Record<string, string> = {
   'google-failed': "Couldn't sign in with Google. Please try again.",
   'google-not-configured': 'Google sign-in is not available right now. Please use your username and password.',
   'google-expired': 'Your Google sign-in expired. Please start again.',
+  'google-busy': "Google confirmed it's you, but the Centre's data service is busy right now. Wait a minute and try again.",
 }
 
 export default async function MembersLoginPage({

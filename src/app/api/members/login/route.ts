@@ -4,7 +4,7 @@ import { callAppsScript } from '@/lib/apps-script'
 import { setMemberSessionCookie } from '@/lib/member-session'
 import { parseFields } from '@/lib/input-checks'
 import { addressOf, clearWrong, lockedOut, noteWrong } from '@/lib/member-throttle'
-import type { MemberRecord } from '@/lib/member-api'
+import { BUSY_MESSAGE, isBusy, type MemberRecord } from '@/lib/member-api'
 
 // A valid-format bcrypt hash that no real password will ever match — compared
 // against on a lookup miss so an unknown username takes the same time as a wrong
@@ -15,6 +15,9 @@ const WRONG =
   'Incorrect username or password. If you made your account with Google, use "Continue with Google" instead.'
 
 // Sign in with username + password. (Accounts are made at /api/members/register.)
+// Sign-in may wait several seconds for Google's per-minute read limit to clear (see withRetries in google-sheets.ts).
+export const maxDuration = 60
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null)
   const parsed = parseFields(body, { username: { label: 'Username', required: true, max: 30 } })
@@ -33,6 +36,7 @@ export async function POST(request: Request) {
     account = (await callAppsScript<{ member: MemberRecord | null }>('getMember', { username })).member
   } catch (error) {
     console.error('Member sign-in failed:', error)
+    if (isBusy(error)) return NextResponse.json({ error: BUSY_MESSAGE }, { status: 503 })
     return NextResponse.json({ error: "Couldn't sign you in right now. Please try again." }, { status: 502 })
   }
 

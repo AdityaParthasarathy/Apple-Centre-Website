@@ -18,6 +18,11 @@ export interface MemberRecord {
 
 export const MIN_PASSWORD = 8
 
+/** Google's per-minute limit on sheet reads was hit (and waiting didn't clear it). */
+export const isBusy = (error: unknown) => error instanceof Error && /\b429\b|quota exceeded/i.test(error.message)
+
+export const BUSY_MESSAGE = "The Centre's data service is busy right now. Wait a minute and try again."
+
 /** What every row a member adds is filed under, so their dashboard can count it
  *  and only they can edit or delete it. */
 export const memberKey = (member: MemberSession) => `member:${member.enrollment}`

@@ -20,6 +20,9 @@ type Obj = Record<string, unknown>
  *  A write that hits this may or may not have been applied, so the operations
  *  below are built to be safe to repeat. */
 class TransientError extends Error {}
+/** Google's limit on reads per minute (shared by the whole site). It clears as
+ *  the minute rolls on, so waiting a few seconds is worth it. */
+class QuotaError extends TransientError {}
 class TabMissingError extends Error {}
 
 // ---------------------------------------------------------------------------
@@ -55,7 +58,8 @@ async function api<T = unknown>(path: string, init: { method?: string; body?: un
       throw new SheetsAccessError(`Google Sheets refused access (${res.status}): ${message}`)
     }
     if (res.status === 400 && /unable to parse range/i.test(message)) throw new TabMissingError(message)
-    if (res.status === 429 || res.status >= 500) {
+    if (res.status === 429) throw new QuotaError(`got no reply from Google Sheets: ${res.status} ${message}`)
+    if (res.status >= 500) {
       throw new TransientError(`got no reply from Google Sheets: ${res.status} ${message}`)
     }
     throw new Error(`Google Sheets rejected the request (${res.status}): ${message}`)
@@ -821,12 +825,17 @@ async function withRetries<T>(action: string, fn: () => Promise<T>): Promise<T> 
     try {
       return await fn()
     } catch (err) {
-      const retry = err instanceof TransientError && attempt < 2 && Date.now() - started < OPERATION_BUDGET_MS
+      // Someone signing in to the members portal is worth a few seconds' wait for
+      // the per-minute read limit to clear, rather than an instant failure.
+      const patient = err instanceof QuotaError && MEMBER_AUTH_ACTION.test(action)
+      const retry = err instanceof TransientError && attempt < (patient ? 4 : 2) && Date.now() - started < OPERATION_BUDGET_MS
       if (!retry) throw err
-      await new Promise((r) => setTimeout(r, 300 * (attempt + 1)))
+      await new Promise((r) => setTimeout(r, (patient ? 3000 : 300) * (attempt + 1)))
     }
   }
 }
+
+const MEMBER_AUTH_ACTION = /^(get|register)Member$|^updateMemberEmail$/
 
 const ok = (extra: Obj = {}) => ({ success: true, ...extra })
 const fail = (error: string) => ({ success: false, error })

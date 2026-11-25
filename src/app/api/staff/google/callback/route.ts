@@ -9,7 +9,7 @@ import {
 } from '@/lib/google-oauth'
 import { buildSessionCookie } from '@/lib/session'
 import { buildMemberSessionCookie, buildPendingGoogleCookie } from '@/lib/member-session'
-import type { MemberRecord } from '@/lib/member-api'
+import { isBusy, type MemberRecord } from '@/lib/member-api'
 
 export const dynamic = 'force-dynamic'
 // Reading the Faculty sheet can be slow (see lib/apps-script.ts).
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       member = (await callAppsScript<{ member: MemberRecord | null }>('getMember', { email: identity.email })).member
     } catch (error) {
       console.error('Member lookup failed during Google sign-in:', error)
-      return fail('google-failed')
+      return fail(isBusy(error) ? 'google-busy' : 'google-failed')
     }
     if (member) {
       return finish(
