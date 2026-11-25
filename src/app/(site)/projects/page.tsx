@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 
 // Faculty-added projects live in the sheet, not build-time content, so this
 // route needs to periodically re-check for new ones.
-export const revalidate = 60
+export const revalidate = 300
 
 export default async function ProjectsPage() {
   const projects = await getAllProjects()

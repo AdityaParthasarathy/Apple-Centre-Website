@@ -20,7 +20,7 @@ export function generateStaticParams() {
 }
 
 // Covers faculty-added events rendered on demand (not in the list above).
-export const revalidate = 60
+export const revalidate = 300
 
 export async function generateMetadata({
   params,

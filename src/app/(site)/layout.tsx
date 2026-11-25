@@ -10,7 +10,7 @@ import { Home, GraduationCap, FolderKanban, Trophy, Calendar, Images, Users } fr
 
 // Search merges in live Apps Script sheet data (see lib/search-index.ts),
 // same freshness window as the other faculty-managed content routes.
-export const revalidate = 60;
+export const revalidate = 300;
 
 const dockItems: DockItem[] = [
   { id: 'home', label: 'Home', href: '/', icon: <Home className="h-4 w-4" /> },

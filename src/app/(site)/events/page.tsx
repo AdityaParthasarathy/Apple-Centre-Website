@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 // Faculty-managed events live in the sheet, not build-time content, so this
 // route needs to periodically re-check for new ones.
-export const revalidate = 60
+export const revalidate = 300
 
 export default async function EventsPage() {
   const events = await getAllEvents()

@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 
 // Faculty-added team members live in the sheet, not build-time content, so
 // this route needs to periodically re-check for new ones.
-export const revalidate = 60
+export const revalidate = 300
 
 export default async function FacultyPage() {
   const faculty = await getAllTeamMembers()

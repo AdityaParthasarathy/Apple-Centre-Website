@@ -9,7 +9,7 @@ import { getAlbumBySlug, getAllAlbums } from '@/lib/merge-albums'
 // Folders are made in the staff portal, so a new one has no page built at
 // deploy time: it is rendered the first time someone opens it (dynamicParams
 // defaults to true) and re-checked every minute after that.
-export const revalidate = 60
+export const revalidate = 300
 
 export async function generateStaticParams() {
   try {

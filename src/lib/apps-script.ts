@@ -179,12 +179,15 @@ async function callAppsScriptOnce<T extends Record<string, unknown>>(
 // on every request. That's the entire cost of opening the Labs & Facilities
 // or Student Projects iMac scroll window (each renders a section that
 // makes exactly one of these calls — see imac-scroll-windows.tsx), and it
-// hit every other page that shows faculty-managed content too. 60s matches
-// the staleness every one of those routes already accepts elsewhere (see
-// `export const revalidate = 60`). Only `list*` (read-only) actions are
-// cached — a write's result being action-specific and often one-shot isn't
-// something a shared cache should paper over.
-const callAppsScriptOnceCached = unstable_cache(readOnce, ['apps-script-list'], { revalidate: 60, tags: [SHEET_TAG] })
+// hit every other page that shows faculty-managed content too. Only `list*`
+// (read-only) actions are cached — a write's result being action-specific and
+// often one-shot isn't something a shared cache should paper over.
+//
+// 5 minutes (matching `export const revalidate = 300` on the pages): Google
+// allows the whole site only 60 sheet reads a minute, and every page refresh
+// costs about nine. Anything saved through the portals expires this cache at
+// once (see SHEET_TAG); only a change typed straight into the sheet waits.
+const callAppsScriptOnceCached = unstable_cache(readOnce, ['apps-script-list'], { revalidate: 300, tags: [SHEET_TAG] })
 
 // Google's Apps Script Web Apps have wildly uneven latency — sequential
 // calls to this same endpoint have been measured anywhere from 2s to 45s,

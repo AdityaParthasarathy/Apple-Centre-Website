@@ -19,7 +19,7 @@ import { OpeningReveal } from '@/components/patterns/opening-reveal'
 // switch for the iMac windows' iframes) — so the home page was rendered on
 // every single visit, waiting on Google, while every other page was a static
 // file. The iframes now have their own route (see app/embed).
-export const revalidate = 60
+export const revalidate = 300
 
 export default function HomePage() {
   return (

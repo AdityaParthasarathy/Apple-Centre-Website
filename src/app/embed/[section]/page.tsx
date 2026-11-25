@@ -12,7 +12,7 @@ const SECTIONS = {
   projects: ProjectsSection,
 } as const
 
-export const revalidate = 60
+export const revalidate = 300
 export const dynamicParams = false
 
 export function generateStaticParams() {
