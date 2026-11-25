@@ -86,6 +86,9 @@ export function SiteFooter({ programs }: { programs: Program[] }) {
         {/* Bottom */}
         <div className="flex flex-col items-center gap-4 border-t border-background/10 pt-8 text-sm text-background/50 sm:flex-row sm:justify-between">
           <p>&copy; 2026 Centre for Apple Technologies, RIT. All rights reserved.</p>
+          <Link href="/privacy" className="transition hover:text-background">
+            Privacy Policy
+          </Link>
         </div>
       </Container>
     </footer>

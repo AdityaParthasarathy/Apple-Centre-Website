@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 import { MemberAuthForm } from '@/components/members/login-form'
 import { GoogleSignInButton } from '@/components/staff/google-sign-in-button'
 import { isGoogleSignInConfigured } from '@/lib/google-oauth'
@@ -56,6 +57,13 @@ export default async function MembersLoginPage({
         )}
 
         <MemberAuthForm />
+
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          How we use your details:{' '}
+          <Link href="/privacy" target="_blank" className="underline underline-offset-2 hover:text-foreground">
+            Privacy Policy
+          </Link>
+        </p>
       </div>
     </div>
   )

@@ -6,7 +6,7 @@ import { getAllAlbums } from '@/lib/merge-albums'
 const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://apple-centre-rit.vercel.app'
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const staticRoutes = ['', '/programs', '/projects', '/achievements', '/events', '/faculty', '/gallery', '/apply'].map(
+  const staticRoutes = ['', '/programs', '/projects', '/achievements', '/events', '/faculty', '/gallery', '/apply', '/privacy'].map(
     (route) => ({
       url: `${baseUrl}${route}`,
       lastModified: new Date(),
