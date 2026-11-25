@@ -41,3 +41,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Desktop app (Electron): its own dependencies and installers
+/desktop/node_modules
+/desktop/dist
