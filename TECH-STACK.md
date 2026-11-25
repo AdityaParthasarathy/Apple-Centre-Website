@@ -116,7 +116,7 @@ The site's "database" is a **Google Spreadsheet** that coordinators can edit dir
 
 | Piece | Details |
 |---|---|
-| **Vercel** | Hosting (production at `apple-centre-website.vercel.app`), serverless functions (60 s max for sheet-heavy routes), Blob storage, env vars (Production). Project linked locally via the Vercel CLI (`.vercel/`, git-ignored). |
+| **Vercel** | Hosting (production at `apple-centre-rit.vercel.app`), serverless functions (60 s max for sheet-heavy routes), Blob storage, env vars (Production). Project linked locally via the Vercel CLI (`.vercel/`, git-ignored). |
 | **GitHub** | Source repo `AdityaParthasarathy/Apple-Centre-Website`; every push to `main` auto-deploys to production. |
 | **ESLint 9** + `eslint-config-next` | Linting (`npm run lint`). |
 | **npm** | Package manager (`package-lock.json`). |
